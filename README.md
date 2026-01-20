@@ -74,7 +74,7 @@ cd ..
 
 ## ▶¿Cómo iniciar la app?
 
-Hemos creado un "script mágico" que enciende todo por ti (Backend y Frontend al mismo tiempo).
+Hemos creado un script que enciende todo por ti (Backend y Frontend al mismo tiempo).
 
 Solamente ejecuta en la terminal:
 ```bash
