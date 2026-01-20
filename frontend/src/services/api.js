@@ -1,66 +1,61 @@
 const API_URL = "http://localhost:5001";
 
-export const login = async (boleta) => {
-    const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
+/**
+ * Función auxiliar para realizar peticiones fetch y manejar errores.
+ * @param {string} endpoint - El punto final de la API.
+ * @param {object} options - Opciones de la petición fetch.
+ * @param {string} errorMessage - Mensaje de error por defecto.
+ */
+const apiRequest = async (endpoint, options = {}, errorMessage = 'Error en la petición') => {
+    const response = await fetch(`${API_URL}${endpoint}`, {
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ boleta })
+        ...options,
     });
+
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Login failed');
+        throw new Error(errorData.error || errorMessage);
     }
+
     return response.json();
 };
 
-export const getSchedule = async (boleta) => {
-    const response = await fetch(`${API_URL}/api/user/${boleta}/schedule`);
-    if (!response.ok) throw new Error('Failed to fetch schedule');
-    return response.json();
-};
-
-export const checkEmail = async (email) => {
-    const response = await fetch(`${API_URL}/auth/check-email`, {
+// Iniciar sesión con el número de boleta
+export const login = (boleta) => 
+    apiRequest('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ boleta })
+    }, 'Error al iniciar sesión');
+
+// Obtener el horario del usuario mediante su boleta
+export const getSchedule = (boleta) => 
+    apiRequest(`/api/user/${boleta}/schedule`, {}, 'Error al obtener el horario');
+
+// Verificar si un correo electrónico ya está registrado
+export const checkEmail = (email) => 
+    apiRequest('/auth/check-email', {
+        method: 'POST',
         body: JSON.stringify({ email })
     });
-    return response.json();
-};
 
-export const completeProfile = async (userData) => {
-    const response = await fetch(`${API_URL}/auth/complete-profile`, {
+// Completar el registro del perfil del usuario
+export const completeProfile = (userData) => 
+    apiRequest('/auth/complete-profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
-    });
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to complete profile');
-    }
-    return response.json();
-};
+    }, 'Error al completar el perfil');
 
-export const getBuildings = async () => {
-    const response = await fetch(`${API_URL}/api/buildings`);
-    if (!response.ok) throw new Error('Failed to fetch buildings');
-    return response.json();
-};
+// Obtener el listado de edificios
+export const getBuildings = () => 
+    apiRequest('/api/buildings', {}, 'Error al obtener edificios');
 
-export const getParking = async () => {
-    const response = await fetch(`${API_URL}/api/parking`);
-    if (!response.ok) throw new Error('Failed to fetch parking');
-    return response.json();
-};
+// Obtener información de los estacionamientos
+export const getParking = () => 
+    apiRequest('/api/parking', {}, 'Error al obtener estacionamientos');
 
-export const getRoute = async (origin, dest) => {
-    // Mock implementation for demo if real backend too complex to wire up fully now
-    // Expects {lat: x, lon: y, boleta: z, type: 'next_class'} etc
-    const response = await fetch(`${API_URL}/ruta`, {
+// Obtener una ruta basada en el origen y destino
+export const getRoute = (origin, dest) => 
+    apiRequest('/ruta', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(origin)
-    });
-    if (!response.ok) throw new Error('Failed to fetch route');
-    return response.json();
-};
+    }, 'Error al obtener la ruta');

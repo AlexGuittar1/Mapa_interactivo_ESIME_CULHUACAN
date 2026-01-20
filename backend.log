@@ -6,9 +6,3 @@
  * Restarting with stat
  * Debugger is active!
  * Debugger PIN: 105-715-481
-127.0.0.1 - - [19/Jan/2026 23:40:15] "OPTIONS /auth/login HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:40:15] "POST /auth/login HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:40:15] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:40:15] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:40:15] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:40:15] "GET /api/buildings HTTP/1.1" 200 -

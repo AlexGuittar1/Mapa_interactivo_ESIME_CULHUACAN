@@ -8,8 +8,8 @@ const Login = () => {
     const navigate = useNavigate();
     const { instance } = useMsal();
 
-    // States
-    const [step, setStep] = useState('CHOICE'); // CHOICE, BOLETA_LOGIN, COMPLETE_PROFILE
+    // Estados
+    const [step, setStep] = useState('CHOICE');
     const [error, setError] = useState(null);
 
     // Boleta Login State
@@ -26,13 +26,11 @@ const Login = () => {
         setError(null);
         instance.loginPopup(loginRequest)
             .then(async (response) => {
-                const msEmail = response.account.username; // Or email if available
-                const name = response.account.name;
+                const msEmail = response.account.username; // si el correo no esta disponible
 
                 setEmail(msEmail);
                 setMsName(name);
-
-                // Check if user exists in our DB
+                // Verificar si el usuario existe en nuestra base de datos
                 try {
                     const check = await checkEmail(msEmail);
                     if (check.exists) {
@@ -40,7 +38,7 @@ const Login = () => {
                         localStorage.setItem('user', JSON.stringify(check.user));
                         navigate('/map');
                     } else {
-                        // Need to complete profile
+                        // Debemos completar el perfil
                         setStep('COMPLETE_PROFILE');
                     }
                 } catch (err) {
@@ -83,7 +81,7 @@ const Login = () => {
         }
     };
 
-    // --- RENDER ---
+    // renderizado
 
     if (step === 'COMPLETE_PROFILE') {
         return (
@@ -140,7 +138,7 @@ const Login = () => {
         );
     }
 
-    // DEFAULT VIEW (CHOICE)
+    // Vista default
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
             <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
@@ -149,13 +147,13 @@ const Login = () => {
                 {error && <div className="mb-4 text-red-600 text-center text-sm">{error}</div>}
 
                 <div className="space-y-4">
-                    {/* Microsoft Button */}
+                    {/* Boton Microsoft*/}
                     <button
                         onClick={handleMicrosoftLogin}
                         className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                         <img src="https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_mssymbol_19.png" alt="Microsoft" className="h-5 w-5" />
-                        Iniciar sesión con Outlook
+                        Iniciar sesión con Correo Institucional
                     </button>
 
                     <div className="relative">
@@ -163,7 +161,7 @@ const Login = () => {
                             <div className="w-full border-t border-gray-300"></div>
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white text-gray-500">O ingresa manualmente</span>
+                            <span className="px-2 bg-white text-gray-500">O ingresa con tu número de boleta</span>
                         </div>
                     </div>
 
@@ -184,7 +182,7 @@ const Login = () => {
                             type="submit"
                             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-900 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
-                            Ingresar con Boleta
+                            Ingresar con número de boleta
                         </button>
                     </form>
                 </div>
