@@ -165,7 +165,7 @@ const Login = () => {
                         </div>
                     </div>
 
-                    {/* Manual Boleta Login */}
+                    {/* Boleta Login */}
                     <form onSubmit={handleBoletaLogin} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Número de Boleta</label>
