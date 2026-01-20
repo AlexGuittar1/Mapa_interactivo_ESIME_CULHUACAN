@@ -26,7 +26,7 @@ const Login = () => {
         setError(null);
         instance.loginPopup(loginRequest)
             .then(async (response) => {
-                const msEmail = response.account.username; // si el correo no esta disponible
+                const msEmail = response.account.username; // si el correo no esta disponible 
 
                 setEmail(msEmail);
                 setMsName(name);
