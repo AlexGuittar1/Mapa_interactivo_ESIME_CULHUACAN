@@ -40,6 +40,7 @@ class Usuario(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     boleta = db.Column(db.String(20), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True) # Nuevo campo para Outlook
     nombre = db.Column(db.String(100), nullable=False)
     carrera = db.Column(db.String(100))
     # vehiculo: 'auto', 'moto', 'bici', 'ninguno'
@@ -48,6 +49,7 @@ class Usuario(db.Model):
     def to_dict(self):
         return {
             "boleta": self.boleta,
+            "email": self.email,
             "nombre": self.nombre,
             "carrera": self.carrera,
             "vehiculo": self.vehiculo

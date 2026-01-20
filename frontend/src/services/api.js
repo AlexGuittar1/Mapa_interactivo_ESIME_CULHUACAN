@@ -19,6 +19,28 @@ export const getSchedule = async (boleta) => {
     return response.json();
 };
 
+export const checkEmail = async (email) => {
+    const response = await fetch(`${API_URL}/auth/check-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+    });
+    return response.json();
+};
+
+export const completeProfile = async (userData) => {
+    const response = await fetch(`${API_URL}/auth/complete-profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to complete profile');
+    }
+    return response.json();
+};
+
 export const getBuildings = async () => {
     const response = await fetch(`${API_URL}/api/buildings`);
     if (!response.ok) throw new Error('Failed to fetch buildings');

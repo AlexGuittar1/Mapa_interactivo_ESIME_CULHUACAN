@@ -6,24 +6,9 @@
  * Restarting with stat
  * Debugger is active!
  * Debugger PIN: 105-715-481
-127.0.0.1 - - [19/Jan/2026 23:06:11] "OPTIONS /auth/login HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:11] "POST /auth/login HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:11] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:11] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:11] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:11] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:18] "OPTIONS /auth/login HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:18] "[33mPOST /auth/login HTTP/1.1[0m" 404 -
-127.0.0.1 - - [19/Jan/2026 23:06:22] "[33mPOST /auth/login HTTP/1.1[0m" 404 -
-127.0.0.1 - - [19/Jan/2026 23:06:28] "OPTIONS /auth/login HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:28] "POST /auth/login HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:28] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:28] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:28] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:28] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:38] "GET /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:38] "GET /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:53] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:53] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:53] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [19/Jan/2026 23:06:53] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [19/Jan/2026 23:40:15] "OPTIONS /auth/login HTTP/1.1" 200 -
+127.0.0.1 - - [19/Jan/2026 23:40:15] "POST /auth/login HTTP/1.1" 200 -
+127.0.0.1 - - [19/Jan/2026 23:40:15] "GET /api/buildings HTTP/1.1" 200 -
+127.0.0.1 - - [19/Jan/2026 23:40:15] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [19/Jan/2026 23:40:15] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [19/Jan/2026 23:40:15] "GET /api/buildings HTTP/1.1" 200 -

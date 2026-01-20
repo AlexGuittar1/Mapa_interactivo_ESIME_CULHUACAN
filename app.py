@@ -33,6 +33,41 @@ init_system()
 
 # --- AUTH ---
 
+@app.route("/auth/check-email", methods=["POST"])
+def check_email():
+    data = request.get_json()
+    email = data.get('email')
+    
+    user = Usuario.query.filter_by(email=email).first()
+    if user:
+        return jsonify({"exists": True, "user": user.to_dict()}), 200
+    
+    return jsonify({"exists": False}), 200
+
+@app.route("/auth/complete-profile", methods=["POST"])
+def complete_profile():
+    data = request.get_json()
+    email = data.get('email')
+    boleta = data.get('boleta')
+    nombre = data.get('nombre') # Desde Outlook o Input
+    
+    # Validar si boleta ya existe
+    if Usuario.query.filter_by(boleta=boleta).first():
+        return jsonify({"error": "La boleta ya está registrada"}), 400
+
+    # Crear nuevo usuario
+    nuevo_usuario = Usuario(
+        boleta=boleta, 
+        nombre=nombre, 
+        email=email,
+        carrera=data.get('carrera', 'Ingeniería'),
+        vehiculo=data.get('vehiculo', 'ninguno')
+    )
+    db.session.add(nuevo_usuario)
+    db.session.commit()
+    
+    return jsonify(nuevo_usuario.to_dict()), 201
+
 @app.route("/auth/register", methods=["POST"])
 def register():
     data = request.get_json()
