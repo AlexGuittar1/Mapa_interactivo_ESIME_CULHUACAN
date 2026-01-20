@@ -72,7 +72,7 @@ cd ..
 
 ---
 
-## ▶¿Cómo iniciar la app?
+## ¿Cómo iniciar la app?
 
 Hemos creado un script que enciende todo por ti (Backend y Frontend al mismo tiempo).
 
