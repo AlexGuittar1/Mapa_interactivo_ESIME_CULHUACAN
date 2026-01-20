@@ -1,7 +1,7 @@
 # Mapa Interactivo ESIME Culhuacán
 
 ¡Bienvenido! Este proyecto es una aplicación web completa para navegar por la ESIME Culhuacán.
-Fue diseñado no solo para ser útil, sino también para **enseñar cómo funciona una aplicación real** por dentro. Si eres estudiante y quieres aprender a programar sistemas web, ¡estás en el lugar correcto!
+Fue diseñado no solo para ser útil, sino también para **enseñar cómo funciona una aplicación real** por dentro. Si eres estudiante y quieres aprender a programar sistemas web, ¡este proyecto te ayudara mucho!
 
 ---
 
