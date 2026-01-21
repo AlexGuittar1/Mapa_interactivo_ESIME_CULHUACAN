@@ -1,9 +1,75 @@
 @import "tailwindcss";
 
-html,
+:root {
+  --esime-maroon: #800000;
+  --esime-maroon-light: #a52a2a;
+  --esime-blue: #003366;
+}
+
 body,
+html,
 #root {
   height: 100%;
   margin: 0;
-  overscroll-behavior: none;
+  padding: 0;
+  overflow: hidden;
+  background: radial-gradient(circle, #ffffff 0%, #f7b1b5 100%) !important;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+.map-bg-premium {
+  background: radial-gradient(circle, #ffffff 0%,#ffdbdc 100%) !important;
+}
+
+.leaflet-container,
+.leaflet-control-container {
+  background: transparent !important;
+}
+
+/* Header Gradient */
+.header-gradient {
+  background: linear-gradient(90deg, #aa0e0e 0%, #750505 100%);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.user-location-dot {
+  width: 14px;
+  height: 14px;
+  background-color: #3b82f6;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+
+  70% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+/* Custom Marker Styling - Shift Red to Maroon */
+.custom-maroon-pin {
+  filter: brightness(0.5) saturate(2) contrast(1.1);
 }

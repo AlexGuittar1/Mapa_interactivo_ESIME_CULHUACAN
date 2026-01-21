@@ -2,23 +2,23 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMsal } from "@azure/msal-react";
 import { loginRequest } from "../authConfig";
-import { login, checkEmail, completeProfile } from '../services/api';
+import { login, checkEmail, completeProfile, register } from '../services/api';
 
 const Login = () => {
     const navigate = useNavigate();
     const { instance } = useMsal();
 
-    // Estados
-    const [step, setStep] = useState('CHOICE');
+    // Estados: LOGIN, REGISTER, COMPLETE_PROFILE
+    const [view, setView] = useState('LOGIN');
     const [error, setError] = useState(null);
 
-    // Boleta Login State
+    // Login inputs
     const [boleta, setBoleta] = useState('');
 
-    // Profile Completion State
+    // Register/Profile inputs
     const [email, setEmail] = useState('');
-    const [msName, setMsName] = useState('');
-    const [newBoleta, setNewBoleta] = useState('');
+    const [nombre, setNombre] = useState('');
+    const [regBoleta, setRegBoleta] = useState('');
     const [carrera, setCarrera] = useState('Ingeniería en Sistemas Computacionales');
     const [vehiculo, setVehiculo] = useState('ninguno');
 
@@ -26,28 +26,28 @@ const Login = () => {
         setError(null);
         instance.loginPopup(loginRequest)
             .then(async (response) => {
-                const msEmail = response.account.username; // si el correo no esta disponible 
+                const msEmail = response.account.username;
+                const msName = response.account.name;
 
                 setEmail(msEmail);
-                setMsName(name);
-                // Verificar si el usuario existe en nuestra base de datos
+                setNombre(msName); // Pre-fill name from Outlook
+
+                // Verificar existencia
                 try {
                     const check = await checkEmail(msEmail);
                     if (check.exists) {
-                        // Login Success
                         localStorage.setItem('user', JSON.stringify(check.user));
                         navigate('/map');
                     } else {
-                        // Debemos completar el perfil
-                        setStep('COMPLETE_PROFILE');
+                        setView('COMPLETE_PROFILE');
                     }
                 } catch (err) {
-                    setError("Error conectando con el servidor");
+                    setError("Error de conexión con el servidor");
                 }
             })
             .catch(e => {
                 console.error(e);
-                setError("Error al iniciar sesión con Microsoft");
+                setError("Error al autenticar con Microsoft");
             });
     };
 
@@ -59,78 +59,82 @@ const Login = () => {
             localStorage.setItem('user', JSON.stringify(user));
             navigate('/map');
         } catch (err) {
-            setError(err.message || "Usuario no encontrado");
+            setError("Usuario no encontrado, verifique su boleta o regístrese.");
         }
     };
 
-    const handleCompleteProfile = async (e) => {
+    const handleRegister = async (e) => {
+        e.preventDefault();
+        setError(null);
+
+        // Use validation logic if needed
+        const payload = {
+            boleta: regBoleta,
+            nombre: nombre,
+            email: email || `user_${regBoleta}@esime.mx`, // Email ficticio si es registro manual
+            carrera,
+            vehiculo
+        };
+
+        try {
+            const newUser = await register(payload);
+            localStorage.setItem('user', JSON.stringify(newUser));
+            navigate('/map');
+        } catch (err) {
+            setError(err.message || "Error al registrar usuario.");
+        }
+    };
+
+    const handleProfileCompletion = async (e) => {
         e.preventDefault();
         setError(null);
         try {
             const newUser = await completeProfile({
-                email: email,
-                nombre: msName,
-                boleta: newBoleta,
+                email,
+                nombre,
+                boleta: regBoleta,
                 carrera,
                 vehiculo
             });
             localStorage.setItem('user', JSON.stringify(newUser));
             navigate('/map');
         } catch (err) {
-            setError(err.message || "Error al registrar perfil");
+            setError(err.message || "Error al completar perfil.");
         }
     };
 
-    // renderizado
+    // --- VISTAS ---
 
-    if (step === 'COMPLETE_PROFILE') {
+    if (view === 'COMPLETE_PROFILE') {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-100">
-                <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-                    <h1 className="text-xl font-bold text-center mb-2 text-blue-900">Completar Perfil</h1>
-                    <p className="text-sm text-center text-gray-600 mb-6">Hola {msName}, termina de configurar tu cuenta.</p>
+            <div className="flex items-center justify-center min-h-screen bg-gray-50">
+                <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
+                    <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">Termina tu registro</h2>
+                    <p className="text-gray-500 text-center text-sm mb-6">Hola {nombre}, configura tu cuenta institucional.</p>
+                    {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm font-medium">{error}</div>}
 
-                    {error && <div className="mb-4 text-red-600 text-center text-sm">{error}</div>}
-
-                    <form onSubmit={handleCompleteProfile} className="space-y-4">
+                    <form onSubmit={handleProfileCompletion} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Correo Institucional</label>
-                            <input type="text" disabled value={email} className="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-500" />
+                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide">Correo</label>
+                            <input type="text" disabled value={email} className="mt-1 block w-full px-4 py-2 bg-gray-100 border-none rounded-lg text-gray-500" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Número de Boleta</label>
-                            <input
-                                type="text"
-                                required
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500"
-                                value={newBoleta}
-                                onChange={(e) => setNewBoleta(e.target.value)}
-                                placeholder="2020640001"
-                            />
+                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide">Boleta</label>
+                            <input type="text" required value={regBoleta} onChange={e => setRegBoleta(e.target.value)}
+                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" />
                         </div>
+                        {/* Carrera & Vehiculo Selects */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Carrera</label>
-                            <select value={carrera} onChange={(e) => setCarrera(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500">
-                                <option>Ingeniería en Sistemas Computacionales</option>
+                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide">Carrera</label>
+                            <select value={carrera} onChange={e => setCarrera(e.target.value)} className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option>Ingeniería en Computación</option>
                                 <option>Ingeniería en Comunicaciones y Electrónica</option>
-                                <option>Ingeniería Mecánica</option>
-                                <option>Ingeniería Eléctrica</option>
+                                <option>Ingeniería en Sistemas Automotrices</option>
+                                <option>Ingeniería Mecanica</option>
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Medio de Transporte</label>
-                            <select value={vehiculo} onChange={(e) => setVehiculo(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500">
-                                <option value="ninguno">Ninguno</option>
-                                <option value="auto">Automóvil</option>
-                                <option value="moto">Motocicleta</option>
-                                <option value="bici">Bicicleta</option>
-                            </select>
-                        </div>
-                        <button
-                            type="submit"
-                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                        >
-                            Registrar y Entrar
+                        <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg transition-transform transform active:scale-95">
+                            Completar Registro
                         </button>
                     </form>
                 </div>
@@ -138,53 +142,113 @@ const Login = () => {
         );
     }
 
-    // Vista default
-    return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
-            <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-                <h1 className="text-2xl font-bold text-center mb-6 text-blue-900">ESIME Map</h1>
-
-                {error && <div className="mb-4 text-red-600 text-center text-sm">{error}</div>}
-
-                <div className="space-y-4">
-                    {/* Boton Microsoft*/}
-                    <button
-                        onClick={handleMicrosoftLogin}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                        <img src="https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_mssymbol_19.png" alt="Microsoft" className="h-5 w-5" />
-                        Iniciar sesión con Correo Institucional
-                    </button>
-
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-300"></div>
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white text-gray-500">O ingresa con tu número de boleta</span>
-                        </div>
+    if (view === 'REGISTER') {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-gray-50">
+                <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900">Crear Cuenta</h2>
+                        <button onClick={() => setView('LOGIN')} className="text-sm text-blue-600 hover:underline">Volver</button>
                     </div>
+                    {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm font-medium">{error}</div>}
 
-                    {/* Boleta Login */}
-                    <form onSubmit={handleBoletaLogin} className="space-y-4">
+                    <form onSubmit={handleRegister} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Número de Boleta</label>
-                            <input
-                                type="text"
-                                required
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                value={boleta}
-                                onChange={(e) => setBoleta(e.target.value)}
-                                placeholder="2020..."
-                            />
+                            <label className="text-xs font-bold text-gray-500 uppercase">Nombre Completo</label>
+                            <input type="text" required value={nombre} onChange={e => setNombre(e.target.value)} className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Juan Pérez" />
                         </div>
-                        <button
-                            type="submit"
-                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-900 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                            Ingresar con número de boleta
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase">Boleta</label>
+                            <input type="text" required value={regBoleta} onChange={e => setRegBoleta(e.target.value)} className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="2024..." />
+                        </div>
+                        {/* Simple Selects reusing state */}
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase">Carrera</label>
+                            <select value={carrera} onChange={e => setCarrera(e.target.value)} className="w-full mt-1 px-4 py-2 border rounded-lg outline-none">
+                                <option>Ingeniería en Computación</option>
+                                <option>Ingeniería en Comunicaciones y Electrónica</option>
+                                <option>Ingeniería en Sistemas Automotrices</option>
+                                <option>Ingeniería Mecánica</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase">Vehículo</label>
+                            <select value={vehiculo} onChange={e => setVehiculo(e.target.value)} className="w-full mt-1 px-4 py-2 border rounded-lg outline-none">
+                                <option value="ninguno">Ninguno</option>
+                                <option value="automovil">Automóvil</option>
+                                <option value="moto">Motocicleta</option>
+                                <option value="bicicleta">Bicicleta/Patín eléctrico</option>
+                            </select>
+                        </div>
+                        <button type="submit" className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md transition-all">
+                            Registrarse
                         </button>
                     </form>
+                </div>
+            </div>
+        );
+    }
+
+    // Default: LOGIN
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-[#F3F4F6]">
+            <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200">
+                <div className="text-center mb-8">
+                    <span className="bg-[#800000] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">ESIME CULHUACAN</span>
+                    <h1 className="text-4xl font-extrabold text-[#1a202c] mt-4 tracking-tight">Bienvenido</h1>
+                    <p className="text-gray-400 mt-2">Inicia sesión para navegar por el campus</p>
+                </div>
+
+                {error && (
+                    <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center border border-red-100 font-medium animate-pulse">
+                        {error}
+                    </div>
+                )}
+
+                <div className="space-y-5">
+                    <button
+                        onClick={handleMicrosoftLogin}
+                        className="w-full flex items-center justify-center px-4 py-3 bg-[#2F2F2F] text-white font-semibold rounded-xl hover:bg-black transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    >
+                        <img
+                            src="https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_mssymbol_19.png"
+                            alt="Microsoft Logo"
+                            className="w-5 h-5 mr-3 object-contain"
+                        />
+                        Continuar con Outlook
+                    </button>
+
+                    <div className="relative flex py-2 items-center">
+                        <div className="flex-grow border-t border-gray-200"></div>
+                        <span className="flex-shrink-0 mx-4 text-gray-300 text-xs font-bold uppercase">O ingresa manualmente</span>
+                        <div className="flex-grow border-t border-gray-200"></div>
+                    </div>
+
+                    <form onSubmit={handleBoletaLogin} className="space-y-4">
+                        <input
+                            type="text"
+                            value={boleta}
+                            onChange={(e) => setBoleta(e.target.value)}
+                            placeholder="Número de boleta"
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none transition-colors text-gray-700 font-medium"
+                            required
+                        />
+                        <button
+                            type="submit"
+                            className="w-full py-3 bg-[#800000] hover:bg-[#600000] text-white font-bold rounded-xl shadow-lg transition-all hover:shadow-red-900/30"
+                        >
+                            Ingresar
+                        </button>
+                    </form>
+
+                    <div className="text-center mt-6">
+                        <p className="text-sm text-gray-500">
+                            ¿No tienes cuenta?{' '}
+                            <button onClick={() => setView('REGISTER')} className="text-blue-600 font-bold hover:underline">
+                                Regístrate aquí
+                            </button>
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

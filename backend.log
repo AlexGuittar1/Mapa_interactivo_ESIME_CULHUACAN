@@ -5,4 +5,22 @@
 [33mPress CTRL+C to quit[0m
  * Restarting with stat
  * Debugger is active!
- * Debugger PIN: 105-715-481
+ * Debugger PIN: 838-752-498
+127.0.0.1 - - [21/Jan/2026 16:32:46] "OPTIONS /api/buildings HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:32:46] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:32:46] "OPTIONS /api/buildings HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:32:46] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:32:46] "GET /api/buildings HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:32:46] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:32:46] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:32:46] "GET /api/buildings HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:34:27] "OPTIONS /api/buildings HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:34:27] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:34:27] "OPTIONS /api/buildings HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:34:27] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:34:27] "GET /api/buildings HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:34:27] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:34:27] "GET /api/buildings HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:34:27] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:34:33] "OPTIONS /ruta HTTP/1.1" 200 -
+127.0.0.1 - - [21/Jan/2026 16:34:33] "POST /ruta HTTP/1.1" 200 -
