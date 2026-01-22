@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, Marker, Popup, Polyline, ImageOverlay, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Popup, Polyline, ImageOverlay, useMap, TileLayer } from 'react-leaflet';
 import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -129,6 +129,14 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
                     scrollWheelZoom={true}
                     className="h-full w-full bg-transparent"
                 >
+                    {/* OpenStreetMap Layer (Descomentar para ver el mapa base real) */}
+                    {/* 
+                    <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    /> 
+                    */}
+
                     {MAP_CONFIG.overlay.enabled && (
                         <div style={{ transform: `rotate(${MAP_CONFIG.overlay.rotation || 0}deg)`, transformOrigin: 'center' }}>
                             <ImageOverlay url={MAP_CONFIG.overlay.imageUrl} bounds={MAP_CONFIG.overlay.bounds} opacity={MAP_CONFIG.overlay.opacity ?? 1.0} />
