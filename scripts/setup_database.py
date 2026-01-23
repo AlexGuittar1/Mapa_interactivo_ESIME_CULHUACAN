@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-db_path = 'instance/campus.db'
+db_path = 'backend/instance/campus.db'
 
 def setup_database():
     conn = sqlite3.connect(db_path)

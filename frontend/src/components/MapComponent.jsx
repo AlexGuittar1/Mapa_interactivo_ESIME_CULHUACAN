@@ -129,13 +129,13 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
                     scrollWheelZoom={true}
                     className="h-full w-full bg-transparent"
                 >
-                    {/* OpenStreetMap Layer (Descomentar para ver el mapa base real) */}
-                    {/* 
+                    {/* OpenStreetMap Layer*/}
+                    
                     <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     /> 
-                    */}
+                    
 
                     {MAP_CONFIG.overlay.enabled && (
                         <div style={{ transform: `rotate(${MAP_CONFIG.overlay.rotation || 0}deg)`, transformOrigin: 'center' }}>

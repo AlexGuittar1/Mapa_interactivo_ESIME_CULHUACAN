@@ -2,8 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from models import db, EdificioDB, CaminoDB, Usuario, Salon, Horario, Estacionamiento, Grupo, Asignatura, Profesor
 from repositorio import cargar_sistema
-from navegacion import calcular_ruta_usuario
-from edificio import Edificio
+
 from datetime import datetime
 import time
 import random
@@ -18,20 +17,21 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
 # Variables globales para sistema de navegación
-arbol = None
 grafo = None
+
 
 # Inicializar sistema (AVL + Grafo)
 def init_system():
-    global arbol, grafo
+    global grafo
     with app.app_context():
         # db.create_all() # Schema already exists
         # Verificar si hay edificios antes de cargar, si no, esperar a poblar
         try:
              if EdificioDB.query.first():
-                arbol, grafo = cargar_sistema()
+                grafo = cargar_sistema()
         except:
              pass
+
 
 init_system()
 
@@ -209,8 +209,10 @@ def obtener_ruta():
         return jsonify({"error": "Datos incompletos"}), 400
 
     # Recargar sistema
-    global arbol, grafo
-    arbol, grafo = cargar_sistema()
+    # Recargar sistema
+    global grafo
+    grafo = cargar_sistema()
+
 
     destino_nombre = None
     nodo_inicio = None

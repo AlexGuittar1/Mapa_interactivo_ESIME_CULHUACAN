@@ -21,7 +21,7 @@ echo "---------------------------------------"
 
 # Backend
 echo "[1/2] Starting Backend (Flask) on port 5001..."
-python3 app.py > backend.log 2>&1 &
+cd backend && python3 app.py > ../backend.log 2>&1 &
 BACKEND_PID=$!
 echo "Backend PID: $BACKEND_PID"
 
