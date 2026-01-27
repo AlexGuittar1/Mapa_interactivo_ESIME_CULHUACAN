@@ -123,3 +123,25 @@ class Estacionamiento(db.Model):
             "tipo": self.tipo
         }
 
+class SavedPlace(db.Model):
+    __tablename__ = "saved_places"
+    id = db.Column(db.Integer, primary_key=True)
+    user_boleta = db.Column(db.String(20), db.ForeignKey('usuarios.boleta'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    lat = db.Column(db.Float, nullable=False)
+    lon = db.Column(db.Float, nullable=False)
+    type = db.Column(db.String(20), default='custom') # 'custom', 'favorite', etc.
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    user = db.relationship('Usuario', backref=db.backref('saved_places', lazy=True))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "lat": self.lat,
+            "lon": self.lon,
+            "type": self.type,
+            "user_boleta": self.user_boleta
+        }
+

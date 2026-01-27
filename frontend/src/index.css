@@ -4,6 +4,8 @@
   --esime-maroon: #800000;
   --esime-maroon-light: #a52a2a;
   --esime-blue: #003366;
+  --figma-bg: #FFFFFF;
+  /* Or standard map color */
 }
 
 body,
@@ -13,33 +15,28 @@ html,
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: radial-gradient(circle, #ffffff 0%, #f7b1b5 100%) !important;
+  background: #ffffff !important;
   font-family: 'Inter', sans-serif;
-  margin: 0;
-  padding: 0;
-  height: 100%;
 }
 
 .map-bg-premium {
-  background: radial-gradient(circle, #ffffff 0%,#ffdbdc 100%) !important;
+  background: white !important;
 }
 
 .leaflet-container,
 .leaflet-control-container {
   background: transparent !important;
+  font-family: 'Inter', sans-serif;
 }
 
-/* Header Gradient */
-.header-gradient {
-  background: linear-gradient(90deg, #aa0e0e 0%, #750505 100%);
-}
+/* Header Gradient - REMOVED or updated if needed, but we are removing the top header */
 
 .glass-panel {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .user-location-dot {
@@ -71,5 +68,15 @@ html,
 
 /* Custom Marker Styling - Shift Red to Maroon */
 .custom-maroon-pin {
-  filter: brightness(0.5) saturate(2) contrast(1.1);
+  filter: brightness(0.6) saturate(1.5) hue-rotate(-10deg);
+}
+
+/* Hide Scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

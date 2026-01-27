@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models import db, EdificioDB, CaminoDB, Usuario, Salon, Horario, Estacionamiento, Grupo, Asignatura, Profesor
+from models import db, EdificioDB, CaminoDB, Usuario, Salon, Horario, Estacionamiento, Grupo, Asignatura, Profesor, SavedPlace
 from repositorio import cargar_sistema
 
 from datetime import datetime
@@ -24,7 +24,7 @@ grafo = None
 def init_system():
     global grafo
     with app.app_context():
-        # db.create_all() # Schema already exists
+        db.create_all() # Ensure schema exists
         # Verificar si hay edificios antes de cargar, si no, esperar a poblar
         try:
              if EdificioDB.query.first():
@@ -157,6 +157,37 @@ def update_user(boleta):
 
     db.session.commit()
     return jsonify(user.to_dict()), 200
+
+@app.route("/api/saved-places", methods=["GET", "POST"])
+def manage_saved_places():
+    if request.method == "GET":
+        boleta = request.args.get('user_boleta')
+        if not boleta:
+            return jsonify({"error": "Boleta requerida"}), 400
+        places = SavedPlace.query.filter_by(user_boleta=boleta).all()
+        return jsonify([p.to_dict() for p in places]), 200
+    
+    if request.method == "POST":
+        data = request.get_json()
+        new_place = SavedPlace(
+            user_boleta=data['user_boleta'],
+            name=data['name'],
+            lat=data['lat'],
+            lon=data['lon'],
+            type=data.get('type', 'custom') 
+        )
+        db.session.add(new_place)
+        db.session.commit()
+        return jsonify(new_place.to_dict()), 201
+
+@app.route("/api/saved-places/<int:id>", methods=["DELETE"])
+def delete_saved_place(id):
+    place = SavedPlace.query.get(id)
+    if place:
+        db.session.delete(place)
+        db.session.commit()
+        return jsonify({"message": "Eliminado"}), 200
+    return jsonify({"error": "No encontrado"}), 404
 
 @app.route("/api/locations", methods=["POST"])
 def save_locations():

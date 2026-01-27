@@ -10,6 +10,9 @@ const MapPage = () => {
     const [route, setRoute] = useState(null);
     const [navInfo, setNavInfo] = useState(null);
     const [selection, setSelection] = useState({ origin: null, destination: null });
+    const [showPins, setShowPins] = useState(false);
+
+    const togglePins = () => setShowPins(prev => !prev);
 
     useEffect(() => {
         const user = localStorage.getItem('user');
@@ -74,6 +77,58 @@ const MapPage = () => {
         });
     };
 
+    const handleCalculateRoute = (origin, destination, userPos) => {
+        let routeParams = { destino: destination };
+
+        if (!origin || origin === "Tu ubicación") {
+            if (userPos) {
+                routeParams.origen = null; // Backend handles lat/lon if name is null
+                routeParams.lat = userPos.lat;
+                routeParams.lon = userPos.lng;
+            } else {
+                // Fallback if no user location
+                routeParams.origen = "Explanada ESIME"; // Default internal origin
+                alert("Ubicación no disponible, usando Explanada como origen.");
+            }
+        } else {
+            routeParams.origen = origin;
+        }
+
+        getRoute(routeParams).then(data => {
+            const coords = [];
+            // Backend returns path of names or coords? 
+            // Logic in calculateArbitraryRoute implies names. 
+            // But if we used lat/lon, the first point might be coordinate.
+            // If backend graph returns list of strings (node names):
+            if (data.camino) {
+                data.camino.forEach(name => {
+                    const b = buildings.find(b => b.nombre === name);
+                    if (b) coords.push([b.lat, b.lon]);
+                });
+
+                // If the path starts with current location (which isn't a named building)
+                // We should prepend userPos if logic dictates.
+                // Ideally backend adds the "START_NODE" which is nearest building.
+                // So we just rely on buildings found.
+            }
+
+            // Fallback for demo: if 0 coords (e.g. unknown names), make a straight line
+            if (coords.length < 2 && userPos) {
+                const destB = buildings.find(b => b.nombre === destination);
+                if (destB) {
+                    coords.push([userPos.lat, userPos.lng]);
+                    coords.push([destB.lat, destB.lon]);
+                }
+            }
+
+            setRoute(coords);
+            setNavInfo(data.info || `De ${origin} a ${destination}`);
+        }).catch(err => {
+            console.error(err);
+            alert("Error calculando ruta. Revisa tu conexión.");
+        });
+    };
+
     return (
         <div className="h-screen w-full">
             <MapComponent
@@ -83,7 +138,10 @@ const MapPage = () => {
                 navInfo={navInfo}
                 selection={selection}
                 onSelectPoint={handleSelectPoint}
+                onCalculateRoute={handleCalculateRoute}
                 onNextClassClick={handleNavigateNextClass}
+                showPins={showPins}
+                togglePins={togglePins}
             />
         </div>
     );
