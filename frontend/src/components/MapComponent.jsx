@@ -6,10 +6,10 @@ import L from 'leaflet';
 import { MAP_CONFIG } from '../mapConfig';
 import initialLocations from '../locations.json';
 import esimeLogo from '../assets/esime-1.png';
-import { Search, User, Compass, Navigation as NavIcon, Car, Bookmark, Map as MapIcon, Plus, ArrowLeft, ArrowUpDown, MoreHorizontal, Send, Clock, X } from 'lucide-react';
+import { User, Compass, Navigation as NavIcon, Car, Bookmark, Map as MapIcon, Plus, ArrowLeft, ArrowUpDown, MoreHorizontal, Send } from 'lucide-react';
 import SavedPlacesSheet from './SavedPlacesSheet';
 
-// Icons setup
+// Configuracion de iconos
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -17,7 +17,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Icons
+// Iconos personalizados del mapa
 const maroonIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
@@ -44,6 +44,7 @@ const userLocationIcon = new L.DivIcon({
     iconAnchor: [7, 7]
 });
 
+// Componente que muestra la ubicacion del usuario
 const LocationMarker = ({ onLocationUpdate }) => {
     const [position, setPosition] = useState(null);
     const map = useMap();
@@ -59,12 +60,12 @@ const LocationMarker = ({ onLocationUpdate }) => {
 
     return position === null ? null : (
         <Marker position={position} icon={userLocationIcon}>
-            <Popup><span className="text-black font-bold">Tú</span></Popup>
+            <Popup><span className="text-black font-bold">Tu</span></Popup>
         </Marker>
     );
 };
 
-// Map Events to handle clicks for Custom Pins
+// Manejador de clicks en el mapa para agregar pins personalizados
 const MapClickHandler = ({ activeTab, onMapClick }) => {
     useMapEvents({
         click: (e) => {
@@ -76,6 +77,7 @@ const MapClickHandler = ({ activeTab, onMapClick }) => {
     return null;
 };
 
+// Controlador que anima la camara del mapa hacia una ubicacion
 const MapController = ({ targetLocation }) => {
     const map = useMap();
     useEffect(() => {
@@ -89,47 +91,45 @@ const MapController = ({ targetLocation }) => {
     return null;
 };
 
-
-const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, onSelectPoint, onCalculateRoute, selection, showPins, togglePins }) => {
+// Componente principal del mapa
+const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRoute, selection, showPins, togglePins }) => {
     const navigate = useNavigate();
     const [locations] = useState(initialLocations);
     const [userPos, setUserPos] = useState(null);
     const [activeTab, setActiveTab] = useState('explorar');
 
-    // Navigation Mode State
+    // Estado del modo de navegacion
     const [isNavigating, setIsNavigating] = useState(false);
-    const [navOrigin, setNavOrigin] = useState("Tu ubicación"); // Default
+    const [navOrigin, setNavOrigin] = useState("Tu ubicacion");
     const [navDestination, setNavDestination] = useState("");
-    const [routeInfo, setRouteInfo] = useState(null); // { time: '1 min', dist: '100 m', name: ... }
 
-    // Custom Pin Adding State
-    const [pendingPin, setPendingPin] = useState(null); // { lat, lon }
+    // Estado para agregar pins personalizados
+    const [pendingPin, setPendingPin] = useState(null);
     const [pinName, setPinName] = useState("");
-    const [customPins, setCustomPins] = useState([]); // List of custom pins added in session or fetched
+    const [customPins, setCustomPins] = useState([]);
 
-    // Search & Control State
+    // Estado de busqueda y control
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [targetLocation, setTargetLocation] = useState(null);
 
-    // State for selective visibility
+    // Estado para visibilidad selectiva de pins
     const [visiblePinIds, setVisiblePinIds] = useState([]);
 
-
-    // Refs for markers to programmatically open popups
+    // Referencias para los markers
     const markerRefs = React.useRef({});
 
-    // Filter Logic
+    // Logica para filtrar por tipo
     const handleFilterClick = (type) => {
         let searchTerm = type.toLowerCase();
 
-        // Fix typos/mapping
-        if (type === 'Gimnasio') searchTerm = 'gimnacio'; // Matches exact name in JSON
+        // Correcion de nombres
+        if (type === 'Gimnasio') searchTerm = 'gimnacio';
         if (type === 'Cafeteria') searchTerm = 'cafe';
 
         if (type === 'Salones') {
-            // Explicitly find Edificio 1, 2, 3
+            // Buscar edificios especificos
             const matches = buildings.filter(b =>
                 b.nombre === 'Edificio 1' ||
                 b.nombre === 'Edificio 2' ||
@@ -138,7 +138,6 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
 
             if (matches.length > 0) {
                 const matchIds = matches.map(m => `b-${m.id}`);
-                // Show these pins ONLY (or add them? User said "without activating buttons", implying selective)
                 setVisiblePinIds(matchIds);
 
                 const lats = matches.map(m => m.lat);
@@ -147,9 +146,6 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
                 const maxLat = Math.max(...lats);
                 const minLon = Math.min(...lons);
                 const maxLon = Math.max(...lons);
-
-                // Toggle pins OFF globally if we rely on selective visibility, but we can just use the state
-                // if (!showPins) togglePins(); // Don't turn on all pins per user request
 
                 setTargetLocation([(minLat + maxLat) / 2, (minLon + maxLon) / 2]);
             }
@@ -173,11 +169,12 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
             }, 500);
 
         } else {
-            console.log("No match found for", searchTerm);
+            console.log("No encontrado para", searchTerm);
             if (type === 'Cafeteria') setTargetLocation([19.4326, -99.1332]);
         }
     };
 
+    // Maneja la busqueda de ubicaciones
     const handleSearch = (query) => {
         setSearchQuery(query);
         if (query.length > 0) {
@@ -194,12 +191,13 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
         }
     };
 
+    // Maneja la seleccion de resultados de busqueda
     const handleSelectResult = (item) => {
         const lat = item.lat || item.latitud;
         const lon = item.lon || item.longitud;
         const id = item.id;
 
-        setVisiblePinIds([id]); // Show only this one
+        setVisiblePinIds([id]);
 
         setTargetLocation([lat, lon]);
         setSearchQuery(item.name);
@@ -212,15 +210,15 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
         }, 500);
     };
 
-    // Map Bounds
+    // Limites del mapa
     const imageBounds = MAP_CONFIG.overlay.bounds;
     const panningBounds = L.latLngBounds([
         [imageBounds[0][0] - 0.006, imageBounds[0][1] - 0.002],
         [imageBounds[1][0] + 0.002, imageBounds[1][1] + 0.002]
     ]);
 
+    // Carga los pins guardados al iniciar
     useEffect(() => {
-        // Fetch saved custom pins on load custom pins
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             const user = JSON.parse(storedUser);
@@ -236,10 +234,12 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
         }
     }, [activeTab]);
 
+    // Maneja el click en el mapa para agregar un pin
     const handleMapClick = (latlng) => {
         setPendingPin(latlng);
     };
 
+    // Guarda un pin personalizado
     const handleSavePin = async () => {
         if (!pinName.trim()) {
             alert("Por favor ingresa un nombre.");
@@ -249,7 +249,7 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
 
         const storedUser = localStorage.getItem('user');
         if (!storedUser) {
-            alert("Error: Inicia sesión nuevamente.");
+            alert("Error: Inicia sesion nuevamente.");
             return;
         }
 
@@ -283,39 +283,40 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
                 setCustomPins([...customPins, newPin]);
                 setPendingPin(null);
                 setPinName("");
-                alert("Guardado!");
+                alert("Guardado");
             } else {
                 const err = await res.json();
                 alert("Error al guardar: " + (err.error || "Desconocido"));
             }
         } catch (e) {
             console.error("Error saving pin", e);
-            alert("Error de conexión: " + e.message);
+            alert("Error de conexion: " + e.message);
         }
     };
 
-
-
+    // Inicia el modo navegacion
     const startNavigation = () => {
         setIsNavigating(true);
-        // If we want route calculation on start, we trigger it here if destination is known
         onSelectPoint('destination', selection.destination);
     };
 
+    // Inicia el calculo de la ruta
     const handleStartRoute = () => {
         if (onCalculateRoute && navDestination) {
             onCalculateRoute(navOrigin, navDestination, userPos);
         }
     };
 
+    // Sale del modo navegacion
     const exitNavigation = () => {
         setIsNavigating(false);
         setNavDestination("");
-        onSelectPoint('clear'); // Clear route
+        onSelectPoint('clear');
     };
 
+    // Elimina un pin personalizado
     const handleDeletePin = async (id, name) => {
-        if (confirm(`¿Eliminar "${name}"?`)) {
+        if (confirm(`Eliminar ${name}`)) {
             try {
                 await fetch(`http://127.0.0.1:5001/api/saved-places/${id}`, { method: 'DELETE' });
                 setCustomPins(prev => prev.filter(p => p.id !== id));
@@ -325,40 +326,34 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
         }
     };
 
+    // Maneja el click en la brujula
     const handleCompassClick = () => {
-        // Logic: Check distance.
         if (!userPos) {
-            alert("Ubicación no disponible");
+            alert("Ubicacion no disponible");
             return;
         }
 
-        // Approximate school center (ESIME)
+        // Centro aproximado de la escuela
         const schoolCenter = L.latLng(19.33059, -99.11211);
         const dist = schoolCenter.distanceTo(userPos);
 
-        if (dist > 3000) { // 3km threshold
-            alert("Estás muy lejos de la escuela. Acércate para usar esta función.");
+        if (dist > 3000) {
+            alert("Estas muy lejos de la escuela. Acercate para usar esta funcion.");
         } else {
             setTargetLocation([userPos.lat, userPos.lng]);
         }
     };
 
+    // Selecciona un pin para navegacion
     const handlePinSelectForNav = (name) => {
         setNavDestination(name);
         setIsNavigating(true);
-        // Trigger route calculation
         onSelectPoint('destination', name);
-        onSelectPoint('origin', 'Tu ubicación'); // Implicit
+        onSelectPoint('origin', 'Tu ubicacion');
     };
 
+    // Renderiza un marcador en el mapa
     const renderMarker = (name, lat, lon, id, isCustom = false) => {
-        // Show pins logic: 
-        // 1. If Global "showPins" is true -> show all
-        // 2. If activeTab is 'agregar' -> show all (so user knows where to click)
-        // 3. If isNavigating -> show all ? Or just relevant? usually all for context
-        // 4. If activeTab is 'guardados' -> show all custom
-        // 5. IF NOT ANY OF ABOVE, check visiblePinIds.
-
         const isVisibleById = visiblePinIds.includes(id);
 
         const shouldShow = showPins ||
@@ -377,14 +372,14 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
                 ref={(el) => markerRefs.current[id] = el}
             >
                 <Popup>
-                    <div className="text-center p-1 flex flex-col gap-2 min-w-[140px]">
+                    <div className="text-center p-1 flex flex-col gap-2 min-w-35">
                         <h3 className="font-bold text-gray-800 border-b pb-1">{name}</h3>
                         {!isNavigating ? (
                             <button
                                 onClick={() => handlePinSelectForNav(name)}
                                 className="bg-blue-600 text-white text-xs py-1.5 px-3 rounded-lg font-bold shadow-md hover:bg-blue-700"
                             >
-                                Ir aquí
+                                Ir aqui
                             </button>
                         ) : (
                             <span className="text-xs text-green-600 font-bold">Destino seleccionado</span>
@@ -397,7 +392,7 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
                                         setNavOrigin(name);
                                         setIsNavigating(true);
                                     }}
-                                    className="bg-gray-100 text-gray-700 text-[10px] py-1 px-2 rounded hover:bg-gray-200"
+                                    className="bg-gray-100 text-gray-700 text-xs py-1 px-2 rounded hover:bg-gray-200"
                                 >
                                     Como Inicio
                                 </button>
@@ -407,13 +402,13 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
                                         setIsNavigating(true);
                                         onSelectPoint('destination', name);
                                     }}
-                                    className="bg-gray-100 text-gray-700 text-[10px] py-1 px-2 rounded hover:bg-gray-200"
+                                    className="bg-gray-100 text-gray-700 text-xs py-1 px-2 rounded hover:bg-gray-200"
                                 >
                                     Como Destino
                                 </button>
                                 <button
-                                    onClick={() => handleDeletePin(id.replace('cust-', ''), name)}
-                                    className="bg-red-100 text-red-600 text-[10px] py-1 px-2 rounded hover:bg-red-200"
+                                    onClick={() => handleDeletePin(id.replace('cust', ''), name)}
+                                    className="bg-red-100 text-red-600 text-xs py-1 px-2 rounded hover:bg-red-200"
                                 >
                                     Eliminar
                                 </button>
@@ -428,27 +423,27 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
     return (
         <div className="relative h-screen w-full flex flex-col bg-white overflow-hidden font-sans">
 
-            {/* --- NAVIGATION MODE UI (Red Header) --- */}
+            {/* INTERFAZ DEL MODO NAVEGACION ENCABEZADO ROJO */}
             {isNavigating && (
-                <div className="absolute top-0 left-0 w-full z-[1200] bg-[#b91c1c] rounded-b-[30px] shadow-2xl p-4 pt-12 animate-in slide-in-from-top duration-300">
+                <div className="absolute top-0 left-0 w-full z-1200 bg-red-800 rounded-b-8xl shadow-2xl p-4 pt-12 animate-in slide-in-from-top duration-300">
                     <div className="flex items-center gap-3 mb-4">
                         <button onClick={exitNavigation} className="text-white p-1 hover:bg-white/10 rounded-full">
                             <ArrowLeft size={24} />
                         </button>
                         <div className="flex-1 flex flex-col gap-2">
-                            {/* Origin Input */}
+                            {/* Entrada de origen */}
                             <div className="bg-black/20 rounded-lg flex items-center px-3 py-2 border border-white/10">
                                 <div className="w-4 h-4 rounded-full border-2 border-white/60 mr-3"></div>
                                 <input
                                     type="text"
                                     value={navOrigin}
-                                    readOnly // For now default to User Location
+                                    readOnly
                                     className="bg-transparent text-white text-sm font-semibold w-full outline-none placeholder:text-white/50"
                                 />
                             </div>
-                            {/* Destination Input */}
+                            {/* Entrada de destino */}
                             <div className="bg-black/20 rounded-lg flex items-center px-3 py-2 border border-white/10">
-                                <div className="w-4 h-4 rounded-full border-2 border-white/60 mr-3 bg-red-500 border-red-200"></div>
+                                <div className="w-4 h-4 rounded-full border-2 border-red-200 mr-3 bg-red-500"></div>
                                 <input
                                     type="text"
                                     value={navDestination || selection?.destination || ""}
@@ -468,7 +463,7 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
 
             {/* --- NORMAL TOP UI --- */}
             {!isNavigating && activeTab !== 'guardados' && (
-                <div className="absolute top-0 left-0 w-full z-[1001] px-4 pt-12 pb-4 flex flex-col gap-3 pointer-events-none">
+                <div className="absolute top-0 left-0 w-full z-1001 px-4 pt-12 pb-4 flex flex-col gap-3 pointer-events-none">
                     <div className="bg-white rounded-full shadow-lg flex items-center px-4 py-3 gap-3 pointer-events-auto">
                         <img src={esimeLogo} alt="Logo" className="h-8 w-8 object-contain" />
                         <div className="flex-1 flex items-center relative">
@@ -480,7 +475,7 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
                                 className="w-full text-base outline-none text-gray-700 placeholder:text-gray-400 font-medium"
                             />
                             {showSuggestions && searchResults.length > 0 && (
-                                <div className="absolute top-full left-0 w-full bg-white rounded-lg shadow-xl mt-2 overflow-hidden z-[1300]">
+                                <div className="absolute top-full left-0 w-full bg-white rounded-lg shadow-xl mt-2 overflow-hidden z-1300">
                                     {searchResults.map((result, idx) => (
                                         <button
                                             key={idx}
@@ -559,7 +554,7 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
 
             {/* --- ADD PIN FORM OVERLAY (Compact) --- */}
             {pendingPin && (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-2xl z-[1500] w-64 animate-in fade-in zoom-in duration-200">
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-2xl z-1500 w-64 animate-in fade-in zoom-in duration-200">
                     <h3 className="font-bold text-gray-800 text-sm mb-3 text-center">Nuevo Lugar</h3>
                     <div className="flex flex-col gap-3">
                         <input
@@ -593,14 +588,14 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
 
             {/* --- ADD PIN INSTRUCTION --- */}
             {activeTab === 'agregar' && !pendingPin && (
-                <div className="absolute top-32 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full z-[1100] text-sm font-bold shadow-lg animate-bounce pointer-events-none">
+                <div className="absolute top-32 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full z-1100 text-sm font-bold shadow-lg animate-bounce pointer-events-none">
                     📍 Toca el mapa para agregar un pin
                 </div>
             )}
 
             {/* --- NAV BOTTOM SHEET (Route Info) --- */}
             {isNavigating && selection?.destination && (route || true) && (
-                <div className="absolute bottom-6 left-4 right-4 bg-[#b91c1c] text-white rounded-[2rem] p-6 shadow-2xl z-[1200]">
+                <div className="absolute bottom-6 left-4 right-4 bg-[#b91c1c] text-white rounded-4xl p-6 shadow-2xl z-1200">
                     <div className="flex items-center justify-between mb-4">
                         <div>
                             <h2 className="text-2xl font-black">
@@ -626,7 +621,7 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
 
             {/* --- FLOATING CONTROLS --- */}
             {!isNavigating && (
-                <div className="absolute bottom-28 right-4 z-[1000] flex flex-col items-end gap-3">
+                <div className="absolute bottom-28 right-4 z-1000 flex flex-col items-end gap-3">
                     <button
                         onClick={handleCompassClick}
                         className="bg-white p-3 rounded-full shadow-xl hover:bg-gray-50 active:scale-95 transition-all"
@@ -647,8 +642,8 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
             {/* --- SAVED PLACES SHEET --- */}
             {activeTab === 'guardados' && (
                 <>
-                    <div className="fixed inset-0 bg-black/50 z-[1050]" onClick={() => setActiveTab('explorar')} />
-                    <div className="fixed inset-x-0 bottom-0 z-[1100]">
+                    <div className="fixed inset-0 bg-black/50 z-1050" onClick={() => setActiveTab('explorar')} />
+                    <div className="fixed inset-x-0 bottom-0 z-1100">
                         <SavedPlacesSheet onClose={() => setActiveTab('explorar')} />
                     </div>
                 </>
@@ -656,7 +651,7 @@ const MapComponent = ({ buildings, parking, route, onNextClassClick, navInfo, on
 
             {/* --- BOTTOM NAVIGATION BAR --- */}
             {!isNavigating && (
-                <div className="absolute bottom-4 left-4 right-4 z-[1001]">
+                <div className="absolute bottom-4 left-4 right-4 z-1001">
                     <div className="bg-[#b30000] rounded-[2.5rem] px-6 py-4 flex justify-between items-center shadow-2xl relative">
                         {/* Nav Items... Same as before */}
                         <button
