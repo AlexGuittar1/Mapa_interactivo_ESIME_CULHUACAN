@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5001";
+const API_URL = "http://127.0.0.1:5001";
 
 /**
  * Función auxiliar para realizar peticiones fetch y manejar errores.
@@ -67,6 +67,18 @@ export const getRoute = (origin, dest) =>
         body: JSON.stringify(origin)
     }, 'Error al obtener la ruta');
 
+export const getWalkingRoute = (startLat, startLon, endLat, endLon) =>
+    apiRequest('/api/route', {
+        method: 'POST',
+        body: JSON.stringify({
+            start_lat: startLat,
+            start_lon: startLon,
+            end_lat: endLat,
+            end_lon: endLon
+        })
+    }, 'Error calculating route');
+
+
 // Guardar ubicaciones personalizadas
 export const saveLocations = (locations) =>
     apiRequest('/api/locations', {
@@ -87,3 +99,24 @@ export const updateUser = (boleta, userData) =>
         method: 'PUT',
         body: JSON.stringify(userData)
     }, 'Error al actualizar usuario');
+
+// --- Saved Places API ---
+export const getSavedPlaces = (boleta) =>
+    apiRequest(`/api/saved-places?user_boleta=${boleta}`, {}, 'Error loading saved places');
+
+export const savePlace = (data) =>
+    apiRequest('/api/saved-places', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }, 'Error saving place');
+
+export const deletePlace = (id) =>
+    apiRequest(`/api/saved-places/${id}`, {
+        method: 'DELETE'
+    }, 'Error deleting place');
+
+export const updatePlace = (id, data) =>
+    apiRequest(`/api/saved-places/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    }, 'Error updating place');

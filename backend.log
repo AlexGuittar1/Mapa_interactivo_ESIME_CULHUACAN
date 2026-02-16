@@ -1,3 +1,4 @@
+KML Graph loaded with 431 nodes
  * Serving Flask app 'app'
  * Debug mode: on
 [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
@@ -5,67 +6,62 @@
 [33mPress CTRL+C to quit[0m
  * Restarting with stat
  * Debugger is active!
- * Debugger PIN: 128-418-661
-127.0.0.1 - - [26/Jan/2026 19:04:20] "OPTIONS /auth/login HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:20] "POST /auth/login HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:20] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:20] "OPTIONS /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:20] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:20] "OPTIONS /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:20] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:20] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:20] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:20] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:20] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:20] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:29] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:36] "OPTIONS /api/saved-places HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:36] "[35m[1mPOST /api/saved-places HTTP/1.1[0m" 201 -
-127.0.0.1 - - [26/Jan/2026 19:04:40] "[33mOPTIONS /api/saved-places/-1 HTTP/1.1[0m" 404 -
-127.0.0.1 - - [26/Jan/2026 19:04:43] "[33mOPTIONS /api/saved-places/-1 HTTP/1.1[0m" 404 -
-127.0.0.1 - - [26/Jan/2026 19:04:45] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:45] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:45] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:45] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:45] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:46] "OPTIONS /api/saved-places/1 HTTP/1.1" 200 -
-/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py:185: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+ * Debugger PIN: 120-294-970
+127.0.0.1 - - [09/Feb/2026 19:09:33] "OPTIONS /auth/login HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:09:33] "POST /auth/login HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:09:34] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:09:34] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:09:34] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:09:34] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:09:34] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:09:34] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:09:34] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:09:34] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:09:55] "OPTIONS /api/saved-places HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:09:55] "[35m[1mPOST /api/saved-places HTTP/1.1[0m" 201 -
+127.0.0.1 - - [09/Feb/2026 19:10:01] "OPTIONS /api/saved-places/8 HTTP/1.1" 200 -
+/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py:220: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
   place = SavedPlace.query.get(id)
-127.0.0.1 - - [26/Jan/2026 19:04:46] "DELETE /api/saved-places/1 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:47] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:53] "OPTIONS /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:53] "OPTIONS /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:53] "GET /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:53] "GET /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:55] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:55] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:55] "OPTIONS /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:55] "OPTIONS /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:55] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:55] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:55] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:55] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:55] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:55] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:56] "GET /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:56] "GET /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:57] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:57] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:57] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:57] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:57] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:57] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:57] "GET /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:57] "GET /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:59] "OPTIONS /api/user/2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:04:59] "PUT /api/user/2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:05:03] "OPTIONS /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:05:03] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:05:03] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:05:03] "OPTIONS /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:05:03] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:05:03] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:05:03] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:05:03] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:05:03] "GET /api/buildings HTTP/1.1" 200 -
-127.0.0.1 - - [26/Jan/2026 19:05:03] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:01] "DELETE /api/saved-places/8 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:04] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:04] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:04] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:04] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:04] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:04] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:04] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:04] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:22] "OPTIONS /api/route HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:22] "POST /api/route HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:56] "OPTIONS /api/user/2025350215/schedule HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:56] "OPTIONS /api/user/2025350215/schedule HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:56] "GET /api/user/2025350215/schedule HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:10:56] "GET /api/user/2025350215/schedule HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:31] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:31] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:31] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:31] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:31] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:31] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:31] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:31] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:34] "GET /api/parking/spaces HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:34] "GET /api/parking/stats HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:34] "GET /api/parking/spaces HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:34] "GET /api/parking/stats HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:39] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:39] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:39] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:39] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:39] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:39] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:39] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:11:39] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:14:30] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:14:30] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:14:30] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:14:30] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:14:30] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:14:30] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:14:30] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Feb/2026 19:14:30] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -

@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import keyPoints from '../data/key_points.json';
 import { useNavigate } from 'react-router-dom';
 import MapComponent from '../components/MapComponent';
-import { getBuildings, getParking, getRoute } from '../services/api';
+import { getBuildings, getParking, getRoute, getWalkingRoute, getSavedPlaces } from '../services/api';
+import locations from '../locations.json';
 
 const MapPage = () => {
     const navigate = useNavigate();
-    const [buildings, setBuildings] = useState([]);
+    const [buildings, setBuildings] = useState(keyPoints); // Load static key points
     const [parking, setParking] = useState([]);
+    const [customPins, setCustomPins] = useState([]);
     const [route, setRoute] = useState(null);
     const [navInfo, setNavInfo] = useState(null);
     const [selection, setSelection] = useState({ origin: null, destination: null });
@@ -15,40 +18,43 @@ const MapPage = () => {
     const togglePins = () => setShowPins(prev => !prev);
 
     useEffect(() => {
-        const user = localStorage.getItem('user');
-        if (!user) {
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
             navigate('/');
             return;
         }
-        getBuildings().then(setBuildings).catch(console.error);
+        const user = JSON.parse(userStr);
+
+        // Buildings are now static keyPoints loaded in initial state
+        // getBuildings().then(setBuildings).catch(console.error);
         getParking().then(setParking).catch(console.error);
+        getSavedPlaces(user.boleta).then(data => {
+            if (Array.isArray(data)) setCustomPins(data);
+        }).catch(console.error);
     }, [navigate]);
 
     const handleSelectPoint = (type, name) => {
         const newSelection = { ...selection, [type]: name };
         setSelection(newSelection);
-
-        // If both are selected, trigger auto-routing
-        if (newSelection.origin && newSelection.destination) {
-            calculateArbitraryRoute(newSelection.origin, newSelection.destination);
-        }
     };
 
-    const calculateArbitraryRoute = (origin, destination) => {
-        getRoute({ origen: origin, destino: destination })
-            .then(data => {
-                const coords = [];
-                data.camino.forEach(name => {
-                    const b = buildings.find(b => b.nombre === name);
-                    if (b) coords.push([b.lat, b.lon]);
-                });
-                setRoute(coords);
-                setNavInfo(`De ${origin} a ${destination}`);
-            })
-            .catch(err => {
-                console.error(err);
-                alert("No se pudo encontrar una ruta entre esos puntos.");
-            });
+    const findCoordinates = (name) => {
+        if (!name) return null;
+        if (name === "Tu ubicacion" || name === "Tu ubicación") return null; // Handle separately
+
+        // Check buildings
+        const b = buildings.find(x => (x.name || x.nombre) === name);
+        if (b) return { lat: b.lat, lon: b.lon };
+
+        // Check static locations
+        const l = locations.find(x => x.name === name);
+        if (l) return { lat: l.lat, lon: l.lon };
+
+        // Check custom pins
+        const p = customPins.find(x => x.name === name);
+        if (p) return { lat: p.lat, lon: p.lon };
+
+        return null;
     };
 
     const handleNavigateNextClass = (userPos) => {
@@ -56,20 +62,23 @@ const MapPage = () => {
         const startLon = userPos ? userPos.lng : -99.11211;
         const user = JSON.parse(localStorage.getItem('user'));
 
-        getRoute({
+        getRoute({ // Uses legacy route for schedule logic
             lat: startLat,
             lon: startLon,
             boleta: user.boleta,
             type: 'next_class'
         }).then(data => {
-            const coords = [[startLat, startLon]];
-            data.camino.forEach(name => {
-                const b = buildings.find(b => b.nombre === name);
-                if (b) coords.push([b.lat, b.lon]);
-            });
+            // ... legacy handling or adapt to new ...
+            // For now assuming legacy endpoint still returns list of names
+            const coords = [];
+            if (data.camino) {
+                data.camino.forEach(name => {
+                    const c = findCoordinates(name);
+                    if (c) coords.push([c.lat, c.lon]);
+                });
+            }
             setRoute(coords);
             setNavInfo(data.info || `${data.origen} -> ${data.destino}`);
-            // Clear selections if it was next_class
             setSelection({ origin: 'Tu ubicación', destination: data.destino });
         }).catch(err => {
             console.error(err);
@@ -77,56 +86,49 @@ const MapPage = () => {
         });
     };
 
-    const handleCalculateRoute = (origin, destination, userPos) => {
-        let routeParams = { destino: destination };
+    const handleCalculateRoute = (originName, destName, userPos) => {
+        let startCoords = null;
+        let endCoords = null;
 
-        if (!origin || origin === "Tu ubicación") {
+        // Resolve Origin
+        if (!originName || originName === "Tu ubicacion" || originName === "Tu ubicación") {
             if (userPos) {
-                routeParams.origen = null; // Backend handles lat/lon if name is null
-                routeParams.lat = userPos.lat;
-                routeParams.lon = userPos.lng;
+                startCoords = { lat: userPos.lat, lon: userPos.lng };
             } else {
-                // Fallback if no user location
-                routeParams.origen = "Explanada ESIME"; // Default internal origin
-                alert("Ubicación no disponible, usando Explanada como origen.");
+                alert("Ubicación no disponible.");
+                return;
             }
         } else {
-            routeParams.origen = origin;
+            startCoords = findCoordinates(originName);
         }
 
-        getRoute(routeParams).then(data => {
-            const coords = [];
-            // Backend returns path of names or coords? 
-            // Logic in calculateArbitraryRoute implies names. 
-            // But if we used lat/lon, the first point might be coordinate.
-            // If backend graph returns list of strings (node names):
-            if (data.camino) {
-                data.camino.forEach(name => {
-                    const b = buildings.find(b => b.nombre === name);
-                    if (b) coords.push([b.lat, b.lon]);
-                });
+        // Resolve Destination
+        endCoords = findCoordinates(destName);
 
-                // If the path starts with current location (which isn't a named building)
-                // We should prepend userPos if logic dictates.
-                // Ideally backend adds the "START_NODE" which is nearest building.
-                // So we just rely on buildings found.
-            }
+        if (!startCoords || !endCoords) {
+            alert("No se pudieron encontrar las coordenadas de origen o destino.");
+            return;
+        }
 
-            // Fallback for demo: if 0 coords (e.g. unknown names), make a straight line
-            if (coords.length < 2 && userPos) {
-                const destB = buildings.find(b => b.nombre === destination);
-                if (destB) {
-                    coords.push([userPos.lat, userPos.lng]);
-                    coords.push([destB.lat, destB.lon]);
+        // Call KML Router
+        getWalkingRoute(startCoords.lat, startCoords.lon, endCoords.lat, endCoords.lon)
+            .then(data => {
+                if (data.path && data.path.length > 0) {
+                    setRoute(data.path); // [[lat, lon], ...]
+                    const minutes = Math.ceil(data.eta_minutes);
+                    setNavInfo({
+                        distancia: Math.round(data.distance),
+                        tiempo: `${minutes} min`,
+                        descripcion: `De ${originName || 'Ubicación'} a ${destName}`
+                    });
+                } else {
+                    alert("Ruta no encontrada.");
                 }
-            }
-
-            setRoute(coords);
-            setNavInfo(data.info || `De ${origin} a ${destination}`);
-        }).catch(err => {
-            console.error(err);
-            alert("Error calculando ruta. Revisa tu conexión.");
-        });
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Error al calcular la ruta.");
+            });
     };
 
     return (
@@ -134,6 +136,9 @@ const MapPage = () => {
             <MapComponent
                 buildings={buildings}
                 parking={parking}
+                locations={locations}
+                customPins={customPins}
+                setCustomPins={setCustomPins}
                 route={route}
                 navInfo={navInfo}
                 selection={selection}

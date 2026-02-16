@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models import db, EdificioDB, CaminoDB, Usuario, Salon, Horario, Estacionamiento, Grupo, Asignatura, Profesor, SavedPlace
+from models import db, EdificioDB, CaminoDB, Usuario, Salon, Horario, Estacionamiento, Grupo, Asignatura, Profesor, SavedPlace, ParkingSpace, ParkingReservation, ParkingHistory
 from repositorio import cargar_sistema
 
 from datetime import datetime
@@ -8,7 +8,7 @@ import time
 import random
 
 app = Flask(__name__)
-CORS(app) # Enable CORS for Frontend
+CORS(app) 
 
 # Configuración de la base de datos
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///campus.db"
@@ -16,26 +16,61 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 
+from kml_router import KMLRouter
+import os
+
+# ... (imports)
+
 # Variables globales para sistema de navegación
 grafo = None
+kml_router = None
 
-
-# Inicializar sistema (AVL + Grafo)
+# Inicializar sistema (AVL + Grafo + KML Router)
 def init_system():
-    global grafo
+    global grafo, kml_router
     with app.app_context():
-        db.create_all() # Ensure schema exists
-        # Verificar si hay edificios antes de cargar, si no, esperar a poblar
+        db.create_all() 
         try:
-             if EdificioDB.query.first():
+            # Init old graph if needed (keeping for backward compatibility or different features)
+            if EdificioDB.query.first():
                 grafo = cargar_sistema()
         except:
-             pass
-
+            pass
+            
+        # Init KML Router
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            kml_path = os.path.join(base_dir, "..", "Camino ESIME caminable.kml")
+            kml_router = KMLRouter(kml_path)
+            print(f"KML Graph loaded with {len(kml_router.graph.nodes)} nodes")
+        except Exception as e:
+            print(f"Error loading KML: {e}")
 
 init_system()
 
-# --- AUTH ---
+@app.route("/api/route", methods=["POST"])
+def get_route():
+    data = request.get_json()
+    start_lat = data.get('start_lat')
+    start_lon = data.get('start_lon')
+    end_lat = data.get('end_lat')
+    end_lon = data.get('end_lon')
+
+    if not all([start_lat, start_lon, end_lat, end_lon]):
+        return jsonify({"error": "Missing coordinates"}), 400
+
+    if not kml_router:
+        return jsonify({"error": "Router not initialized"}), 500
+
+    path, distance = kml_router.find_shortest_path((start_lat, start_lon), (end_lat, end_lon))
+    
+    return jsonify({
+        "path": path, # [[lat, lon], [lat, lon], ...]
+        "distance": distance, # meters
+        "eta_minutes": round(distance / 83.3, 1) # ~5 km/h walking speed (83.3 m/min)
+    })
+
+
 
 @app.route("/auth/check-email", methods=["POST"])
 def check_email():
@@ -105,7 +140,7 @@ def login():
         return jsonify(user.to_dict()), 200
     return jsonify({"error": "Usuario no encontrado"}), 404
 
-# --- DATA ENDPOINTS ---
+# ENDPOINTS
 
 @app.route("/api/parking", methods=["GET"])
 def get_parking():
@@ -188,6 +223,21 @@ def delete_saved_place(id):
         db.session.commit()
         return jsonify({"message": "Eliminado"}), 200
     return jsonify({"error": "No encontrado"}), 404
+
+@app.route("/api/saved-places/<int:id>", methods=["PUT"])
+def update_saved_place(id):
+    place = SavedPlace.query.get(id)
+    if not place:
+        return jsonify({"error": "No encontrado"}), 404
+        
+    data = request.get_json()
+    if 'name' in data: place.name = data['name']
+    if 'lat' in data: place.lat = data['lat']
+    if 'lon' in data: place.lon = data['lon']
+    if 'type' in data: place.type = data['type']
+    
+    db.session.commit()
+    return jsonify(place.to_dict()), 200
 
 @app.route("/api/locations", methods=["POST"])
 def save_locations():
@@ -299,9 +349,9 @@ def obtener_ruta():
     camino, costo = grafo.ruta_mas_corta(nodo_inicio, destino_nombre)
     
     if not camino:
-         # Provicional: Un solo salto si el grafo esta muy incompleto
-         camino = [nodo_inicio, destino_nombre]
-         costo = 0
+        # Provicional: Un solo salto si el grafo esta muy incompleto
+        camino = [nodo_inicio, destino_nombre]
+        costo = 0
 
     return jsonify({
         "origen": nodo_inicio,
@@ -329,6 +379,96 @@ def obtener_nodo_mas_cercano(lat, lon):
 def crear_edificio():
     # ... (Mantener lógica existente si se desea, o simplificar)
     pass
+
+# ==================== PARKING ENDPOINTS ====================
+
+@app.route("/api/parking/spaces", methods=["GET"])
+def get_parking_spaces():
+    """Obtener todos los espacios de estacionamiento con filtros opcionales"""
+    try:
+        section = request.args.get('section')
+        status = request.args.get('status')
+        sort_by = request.args.get('sort_by', 'space_number')
+        
+        query = ParkingSpace.query
+        
+        if section:
+            query = query.filter_by(section=section.upper())
+        if status:
+            query = query.filter_by(status=status)
+        
+        if sort_by == 'space_number':
+            query = query.order_by(ParkingSpace.space_number)
+        elif sort_by.startswith('distance_to_building_'):
+            building_num = sort_by.split('_')[-1]
+            if building_num in ['1', '2', '3']:
+                query = query.order_by(getattr(ParkingSpace, f'distance_to_building_{building_num}'))
+        
+        spaces = query.all()
+        
+        total = len(spaces)
+        available = sum(1 for s in spaces if s.status == 'available')
+        occupied = sum(1 for s in spaces if s.status == 'occupied')
+        reserved = sum(1 for s in spaces if s.status == 'reserved')
+        
+        return jsonify({
+            "total": total,
+            "available": available,
+            "occupied": occupied,
+            "reserved": reserved,
+            "spaces": [space.to_dict() for space in spaces]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/parking/spaces/<int:space_id>", methods=["GET"])
+def get_parking_space(space_id):
+    """Obtener detalles de un espacio específico"""
+    try:
+        space = ParkingSpace.query.get(space_id)
+        if not space:
+            return jsonify({"error": "Espacio no encontrado"}), 404
+        
+        return jsonify(space.to_dict()), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/parking/stats", methods=["GET"])
+def get_parking_stats():
+    """Obtener estadísticas generales del estacionamiento"""
+    try:
+        total = ParkingSpace.query.count()
+        available = ParkingSpace.query.filter_by(status='available').count()
+        occupied = ParkingSpace.query.filter_by(status='occupied').count()
+        reserved = ParkingSpace.query.filter_by(status='reserved').count()
+        
+        sections = {}
+        for section in ['A', 'B', 'C']:
+            section_total = ParkingSpace.query.filter_by(section=section).count()
+            section_available = ParkingSpace.query.filter_by(section=section, status='available').count()
+            section_occupied = ParkingSpace.query.filter_by(section=section, status='occupied').count()
+            section_reserved = ParkingSpace.query.filter_by(section=section, status='reserved').count()
+            
+            sections[section] = {
+                "total": section_total,
+                "available": section_available,
+                "occupied": section_occupied,
+                "reserved": section_reserved,
+                "occupancy_rate": round((section_occupied / section_total * 100), 1) if section_total > 0 else 0
+            }
+        
+        return jsonify({
+            "total": total,
+            "available": available,
+            "occupied": occupied,
+            "reserved": reserved,
+            "occupancy_rate": round((occupied / total * 100), 1) if total > 0 else 0,
+            "sections": sections
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/", methods=["GET"])
 def home():

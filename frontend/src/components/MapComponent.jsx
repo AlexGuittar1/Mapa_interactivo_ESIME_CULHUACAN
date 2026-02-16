@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { MAP_CONFIG } from '../mapConfig';
-import initialLocations from '../locations.json';
-import esimeLogo from '../assets/esime-1.png';
-import { User, Compass, Navigation as NavIcon, Car, Bookmark, Map as MapIcon, Plus, ArrowLeft, ArrowUpDown, MoreHorizontal, Send } from 'lucide-react';
+import esimeLogo from '../assets/esime-logo.png';
+import { User, Compass, Navigation as NavIcon, Car, Bookmark, Map as MapIcon, Plus, ArrowLeft, ArrowUpDown, MoreHorizontal, Send, X } from 'lucide-react';
 import SavedPlacesSheet from './SavedPlacesSheet';
+import { savePlace, deletePlace, updatePlace } from '../services/api';
 
 // Configuracion de iconos
 delete L.Icon.Default.prototype._getIconUrl;
@@ -92,9 +92,8 @@ const MapController = ({ targetLocation }) => {
 };
 
 // Componente principal del mapa
-const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRoute, selection, showPins, togglePins }) => {
+const MapComponent = ({ buildings, locations, customPins, setCustomPins, route, setRoute, navInfo, onSelectPoint, onCalculateRoute, selection, showPins, togglePins }) => {
     const navigate = useNavigate();
-    const [locations] = useState(initialLocations);
     const [userPos, setUserPos] = useState(null);
     const [activeTab, setActiveTab] = useState('explorar');
 
@@ -106,16 +105,66 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
     // Estado para agregar pins personalizados
     const [pendingPin, setPendingPin] = useState(null);
     const [pinName, setPinName] = useState("");
-    const [customPins, setCustomPins] = useState([]);
+    const [editingPinId, setEditingPinId] = useState(null);
+
 
     // Estado de busqueda y control
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [targetLocation, setTargetLocation] = useState(null);
+    const [selectingMode, setSelectingMode] = useState(null); // 'origin' or 'destination'
+
+    // Initial search logic
+    const handleSearch = (query) => {
+        setSearchQuery(query);
+        if (!query.trim()) {
+            setSearchResults([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        const lowerQuery = query.toLowerCase();
+
+        // Search in Buildings (using name or nombre)
+        const buildingMatches = buildings
+            .filter(b => (b.name || b.nombre || "").toLowerCase().includes(lowerQuery))
+            .map(b => ({ ...b, name: b.name || b.nombre, type: 'static', id: `b-${b.id}` }));
+
+        // Search in Custom Pins
+        const customMatches = customPins
+            .filter(p => p.name.toLowerCase().includes(lowerQuery))
+            .map(p => ({ ...p, type: 'custom', id: `cust-${p.id}` }));
+
+        setSearchResults([...buildingMatches, ...customMatches]);
+        setShowSuggestions(true);
+    };
+
+    const handleSelectResult = (result) => {
+        const lat = result.lat;
+        const lon = result.lon;
+        const id = result.id; // Use the ID already constructed in handleSearch
+
+        setVisiblePinIds([id]); // Force visibility
+        setTargetLocation([lat, lon]);
+        setSearchQuery(result.name);
+        setShowSuggestions(false);
+        onSelectPoint('destination', result.name);
+
+        setTimeout(() => {
+            const mk = markerRefs.current[id];
+            if (mk) mk.openPopup();
+        }, 800);
+    };
 
     // Estado para visibilidad selectiva de pins
     const [visiblePinIds, setVisiblePinIds] = useState([]);
+
+    // Estado para ocultar pines del sistema (Eliminados por usuario)
+    const [hiddenPinIds, setHiddenPinIds] = useState(() => {
+        const saved = localStorage.getItem('hidden_sys_pins');
+        return saved ? JSON.parse(saved) : [];
+    });
 
     // Referencias para los markers
     const markerRefs = React.useRef({});
@@ -123,42 +172,35 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
     // Logica para filtrar por tipo
     const handleFilterClick = (type) => {
         let searchTerm = type.toLowerCase();
+        let exactMatchName = null;
 
-        // Correcion de nombres
-        if (type === 'Gimnasio') searchTerm = 'gimnacio';
-        if (type === 'Cafeteria') searchTerm = 'cafe';
+        // Configuration for specific buttons
+        if (type === 'Auditorio') exactMatchName = "Auditorio";
+        if (type === 'Gimnasio') exactMatchName = "Gimnacio de Basquetbol/Voleibol/Taekwondo";
+        if (type === 'Cafeteria') exactMatchName = "Cafeteria Principal";
 
-        if (type === 'Salones') {
-            // Buscar edificios especificos
-            const matches = buildings.filter(b =>
-                b.nombre === 'Edificio 1' ||
-                b.nombre === 'Edificio 2' ||
-                b.nombre === 'Edificio 3'
-            );
-
-            if (matches.length > 0) {
-                const matchIds = matches.map(m => `b-${m.id}`);
-                setVisiblePinIds(matchIds);
-
-                const lats = matches.map(m => m.lat);
-                const lons = matches.map(m => m.lon);
-                const minLat = Math.min(...lats);
-                const maxLat = Math.max(...lats);
-                const minLon = Math.min(...lons);
-                const maxLon = Math.max(...lons);
-
-                setTargetLocation([(minLat + maxLat) / 2, (minLon + maxLon) / 2]);
-            }
-            return;
+        let match;
+        if (exactMatchName) {
+            match = buildings.find(b => (b.name || b.nombre) === exactMatchName);
         }
 
-        let match = buildings.find(b => b.nombre.toLowerCase().includes(searchTerm)) ||
-            locations.find(l => l.name.toLowerCase().includes(searchTerm));
+        // Fallback or generic search
+        if (!match) {
+            // Correcion de terminos para busqueda generica
+            if (type === 'Gimnasio') searchTerm = 'gimnacio';
+            if (type === 'Cafeteria') searchTerm = 'cafeteria';
+
+            match = buildings.find(b => (b.name || b.nombre || "").toLowerCase().includes(searchTerm)) ||
+                locations.find(l => l.name.toLowerCase().includes(searchTerm));
+        }
 
         if (match) {
             const lat = match.lat || match.latitud;
             const lon = match.lon || match.longitud;
-            const id = match.id ? (match.type === 'static' ? `loc-${match.id}` : `b-${match.id}`) : `loc-${locations.indexOf(match)}`;
+            // Since everything is in 'buildings' and rendered with 'b-' prefix, force 'b-'
+            // Exception: if it came from 'locations' (unlikely now), use loc-index?
+            // Safer: if match has id, assume b-{id}
+            const id = match.id ? `b-${match.id}` : `loc-${locations.indexOf(match)}`;
 
             setVisiblePinIds([id]);
             setTargetLocation([lat, lon]);
@@ -166,7 +208,7 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
             setTimeout(() => {
                 const mk = markerRefs.current[id];
                 if (mk) mk.openPopup();
-            }, 500);
+            }, 800);
 
         } else {
             console.log("No encontrado para", searchTerm);
@@ -174,41 +216,7 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
         }
     };
 
-    // Maneja la busqueda de ubicaciones
-    const handleSearch = (query) => {
-        setSearchQuery(query);
-        if (query.length > 0) {
-            const term = query.toLowerCase();
-            const results = [
-                ...buildings.map(b => ({ ...b, name: b.nombre, type: 'building', id: `b-${b.id}` })),
-                ...locations.map((l, idx) => ({ ...l, type: 'static', id: `loc-${idx}` })),
-                ...customPins.map(p => ({ ...p, type: 'custom', id: `cust-${p.id}` }))
-            ].filter(item => item.name.toLowerCase().includes(term));
-            setSearchResults(results.slice(0, 5));
-            setShowSuggestions(true);
-        } else {
-            setShowSuggestions(false);
-        }
-    };
 
-    // Maneja la seleccion de resultados de busqueda
-    const handleSelectResult = (item) => {
-        const lat = item.lat || item.latitud;
-        const lon = item.lon || item.longitud;
-        const id = item.id;
-
-        setVisiblePinIds([id]);
-
-        setTargetLocation([lat, lon]);
-        setSearchQuery(item.name);
-        setShowSuggestions(false);
-        onSelectPoint('destination', item.name);
-
-        setTimeout(() => {
-            const mk = markerRefs.current[id];
-            if (mk) mk.openPopup();
-        }, 500);
-    };
 
     // Limites del mapa
     const imageBounds = MAP_CONFIG.overlay.bounds;
@@ -217,35 +225,17 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
         [imageBounds[1][0] + 0.002, imageBounds[1][1] + 0.002]
     ]);
 
-    // Carga los pins guardados al iniciar
-    useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            const user = JSON.parse(storedUser);
-            fetch(`http://127.0.0.1:5001/api/saved-places?user_boleta=${user.boleta}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (Array.isArray(data)) {
-                        const custom = data.filter(p => p.type === 'custom');
-                        setCustomPins(custom);
-                    }
-                })
-                .catch(err => console.error(err));
-        }
-    }, [activeTab]);
-
     // Maneja el click en el mapa para agregar un pin
     const handleMapClick = (latlng) => {
         setPendingPin(latlng);
     };
 
-    // Guarda un pin personalizado
+    // Guarda o Actualiza un pin personalizado
     const handleSavePin = async () => {
         if (!pinName.trim()) {
             alert("Por favor ingresa un nombre.");
             return;
         }
-        if (!pendingPin) return;
 
         const storedUser = localStorage.getItem('user');
         if (!storedUser) {
@@ -267,31 +257,60 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
         }
 
         try {
-            const res = await fetch(`http://127.0.0.1:5001/api/saved-places`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            if (editingPinId !== null) {
+                // UPDATE EXISTING PIN
+                console.log("Updating pin:", editingPinId);
+                const updatedPin = await updatePlace(editingPinId, {
+                    name: pinName,
+                    lat: pendingPin.lat,
+                    lon: pendingPin.lng,
+                    type: 'custom'
+                });
+
+                if (setCustomPins) {
+                    setCustomPins(prev => prev.map(p => p.id === editingPinId ? updatedPin : p));
+                }
+                alert("Actualizado correctamente");
+            } else {
+                // CREATE NEW PIN
+                if (!pendingPin) return;
+                const newPin = await savePlace({
                     user_boleta: user.boleta,
                     name: pinName,
                     lat: pendingPin.lat,
                     lon: pendingPin.lng,
                     type: 'custom'
-                })
-            });
-            if (res.ok) {
-                const newPin = await res.json();
-                setCustomPins([...customPins, newPin]);
-                setPendingPin(null);
-                setPinName("");
+                });
+
+                if (setCustomPins) {
+                    setCustomPins([...customPins, newPin]);
+                }
                 alert("Guardado");
-            } else {
-                const err = await res.json();
-                alert("Error al guardar: " + (err.error || "Desconocido"));
             }
+
+            // Cleanup
+            setPendingPin(null);
+            setPinName("");
+            setEditingPinId(null);
         } catch (e) {
-            console.error("Error saving pin", e);
-            alert("Error de conexion: " + e.message);
+            console.error("Error saving/updating pin", e);
+            alert("Error: " + e.message);
         }
+    };
+
+    const handleInitEdit = (pin) => {
+        setEditingPinId(pin.id);
+        setPinName(pin.name);
+        setPendingPin({ lat: pin.lat, lng: pin.lon });
+
+        const mk = markerRefs.current[`cust-${pin.id}`];
+        if (mk) mk.closePopup();
+    };
+
+    const handleCancelSave = () => {
+        setPendingPin(null);
+        setPinName("");
+        setEditingPinId(null);
     };
 
     // Inicia el modo navegacion
@@ -312,16 +331,29 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
         setIsNavigating(false);
         setNavDestination("");
         onSelectPoint('clear');
+        setRoute(null);
     };
 
     // Elimina un pin personalizado
-    const handleDeletePin = async (id, name) => {
-        if (confirm(`Eliminar ${name}`)) {
-            try {
-                await fetch(`http://127.0.0.1:5001/api/saved-places/${id}`, { method: 'DELETE' });
-                setCustomPins(prev => prev.filter(p => p.id !== id));
-            } catch (e) {
-                console.error("Error deleting pin", e);
+    // Elimina un pin personalizado o oculta uno del sistema
+    const handleDeletePin = async (id, name, isCustom) => {
+        if (confirm(`Eliminar ${name}?`)) {
+            if (isCustom) {
+                try {
+                    await deletePlace(id);
+                    // Update parent state via prop
+                    if (setCustomPins) {
+                        setCustomPins(prev => prev.filter(p => p.id !== id));
+                    }
+                } catch (e) {
+                    console.error("Error deleting pin", e);
+                    alert("Error al eliminar: " + e.message);
+                }
+            } else {
+                // Es un pin del sistema -> Ocultar logicamente
+                const newHidden = [...hiddenPinIds, id];
+                setHiddenPinIds(newHidden);
+                localStorage.setItem('hidden_sys_pins', JSON.stringify(newHidden));
             }
         }
     };
@@ -344,8 +376,41 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
         }
     };
 
+    // Intercambia origen y destino
+    const handleSwapOriginDest = () => {
+        const temp = navOrigin;
+        setNavOrigin(navDestination);
+        setNavDestination(temp);
+
+        // Update parent selection
+        onSelectPoint('origin', navDestination);
+        onSelectPoint('destination', temp);
+    };
+
+    const redGradientIcon = new L.DivIcon({
+        className: 'custom-div-icon', // Wrapper to avoid default styles interfering
+        html: "<div class='gradient-red-pin'></div>",
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30]
+    });
+
     // Selecciona un pin para navegacion
     const handlePinSelectForNav = (name) => {
+        if (selectingMode === 'origin') {
+            setNavOrigin(name);
+            onSelectPoint('origin', name);
+            setSelectingMode(null); // Show menu again
+            return;
+        }
+        if (selectingMode === 'destination') {
+            setNavDestination(name);
+            onSelectPoint('destination', name);
+            setSelectingMode(null); // Show menu again
+            return;
+        }
+
+        // Default behavior (Start new navigation to this point)
         setNavDestination(name);
         setIsNavigating(true);
         onSelectPoint('destination', name);
@@ -364,54 +429,117 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
 
         if (!shouldShow) return null;
 
+        const isOrigin = navOrigin === name;
+        const isDest = navDestination === name;
+
+        const icon = isCustom ? blueIcon : redGradientIcon;
+
         return (
             <Marker
                 key={id}
                 position={[lat, lon]}
-                icon={isCustom ? blueIcon : maroonIcon}
+                icon={icon}
+                zIndexOffset={isCustom ? 9000 : 0}
                 ref={(el) => markerRefs.current[id] = el}
+                draggable={isCustom && editingPinId === parseInt(id.replace('cust-', ''), 10)}
+                eventHandlers={{
+                    dragend: (e) => {
+                        const marker = e.target;
+                        const position = marker.getLatLng();
+                        setPendingPin({ lat: position.lat, lng: position.lng });
+                    }
+                }}
             >
                 <Popup>
                     <div className="text-center p-1 flex flex-col gap-2 min-w-35">
                         <h3 className="font-bold text-gray-800 border-b pb-1">{name}</h3>
-                        {!isNavigating ? (
-                            <button
-                                onClick={() => handlePinSelectForNav(name)}
-                                className="bg-blue-600 text-white text-xs py-1.5 px-3 rounded-lg font-bold shadow-md hover:bg-blue-700"
-                            >
-                                Ir aqui
-                            </button>
-                        ) : (
-                            <span className="text-xs text-green-600 font-bold">Destino seleccionado</span>
-                        )}
 
-                        {isCustom && !isNavigating && (
+                        {/* Standard Navigation Actions for ALL pins */}
+                        <div className="flex flex-col gap-1.5 mt-1">
+                            {selectingMode ? (
+                                <button
+                                    onClick={() => handlePinSelectForNav(name)}
+                                    className="w-full bg-green-600 text-white text-xs py-2 px-3 rounded-lg font-bold shadow-md hover:bg-green-700"
+                                >
+                                    Seleccionar {selectingMode === 'origin' ? 'Origen' : 'Destino'}
+                                </button>
+                            ) : isNavigating ? (
+                                <>
+                                    {/* Origin Selection */}
+                                    {isOrigin ? (
+                                        <span className="text-xs text-blue-600 font-bold bg-blue-50 py-1 px-2 rounded">📍 Origen Actual</span>
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                setNavOrigin(name);
+                                                setIsNavigating(true); // Ensure nav mode
+                                            }}
+                                            className="bg-gray-100 text-gray-700 text-xs py-1.5 px-2 rounded hover:bg-gray-200"
+                                        >
+                                            Poner como Inicio
+                                        </button>
+                                    )}
+
+                                    {/* Destination Selection */}
+                                    {isDest ? (
+                                        <span className="text-xs text-green-600 font-bold bg-green-50 py-1 px-2 rounded">🏁 Destino Actual</span>
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                setNavDestination(name);
+                                                setIsNavigating(true);
+                                                onSelectPoint('destination', name);
+                                            }}
+                                            className="bg-blue-600 text-white text-xs py-1.5 px-3 rounded-lg font-bold shadow-md hover:bg-blue-700"
+                                        >
+                                            Ir aquí
+                                        </button>
+                                    )}
+                                </>
+                            ) : (
+                                /* Normal Mode Actions */
+                                <>
+                                    <button
+                                        onClick={() => handlePinSelectForNav(name)}
+                                        className="bg-blue-600 text-white text-xs py-1.5 px-3 rounded-lg font-bold shadow-md hover:bg-blue-700"
+                                    >
+                                        Ir aquí
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            setNavOrigin(name);
+                                            setIsNavigating(true);
+                                            // Ideally open the nav UI with this as origin
+                                        }}
+                                        className="bg-gray-100 text-gray-700 text-xs py-1 px-2 rounded hover:bg-gray-200 border"
+                                    >
+                                        Desde aquí
+                                    </button>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Custom Pin Actions (Delete + Edit) */}
+                        {isCustom && (
                             <div className="flex flex-col gap-1 mt-2 pt-2 border-t">
-                                <button
-                                    onClick={() => {
-                                        setNavOrigin(name);
-                                        setIsNavigating(true);
-                                    }}
-                                    className="bg-gray-100 text-gray-700 text-xs py-1 px-2 rounded hover:bg-gray-200"
-                                >
-                                    Como Inicio
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setNavDestination(name);
-                                        setIsNavigating(true);
-                                        onSelectPoint('destination', name);
-                                    }}
-                                    className="bg-gray-100 text-gray-700 text-xs py-1 px-2 rounded hover:bg-gray-200"
-                                >
-                                    Como Destino
-                                </button>
-                                <button
-                                    onClick={() => handleDeletePin(id.replace('cust', ''), name)}
-                                    className="bg-red-100 text-red-600 text-xs py-1 px-2 rounded hover:bg-red-200"
-                                >
-                                    Eliminar
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleInitEdit({
+                                            id: parseInt(id.replace('cust-', ''), 10),
+                                            name, lat, lon
+                                        })}
+                                        className="flex-1 bg-yellow-50 text-yellow-700 text-xs py-1 px-2 rounded hover:bg-yellow-100 border border-yellow-200"
+                                    >
+                                        Editar
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeletePin(id.replace('cust-', ''), name, isCustom)}
+                                        className="flex-1 bg-red-50 text-red-600 text-xs py-1 px-2 rounded hover:bg-red-100 border border-red-200"
+                                    >
+                                        Eliminar
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -424,41 +552,61 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
         <div className="relative h-screen w-full flex flex-col bg-white overflow-hidden font-sans">
 
             {/* INTERFAZ DEL MODO NAVEGACION ENCABEZADO ROJO */}
+            {/* INTERFAZ DEL MODO NAVEGACION ENCABEZADO ROJO */}
             {isNavigating && (
-                <div className="absolute top-0 left-0 w-full z-1200 bg-red-800 rounded-b-8xl shadow-2xl p-4 pt-12 animate-in slide-in-from-top duration-300">
-                    <div className="flex items-center gap-3 mb-4">
-                        <button onClick={exitNavigation} className="text-white p-1 hover:bg-white/10 rounded-full">
-                            <ArrowLeft size={24} />
-                        </button>
-                        <div className="flex-1 flex flex-col gap-2">
-                            {/* Entrada de origen */}
-                            <div className="bg-black/20 rounded-lg flex items-center px-3 py-2 border border-white/10">
-                                <div className="w-4 h-4 rounded-full border-2 border-white/60 mr-3"></div>
-                                <input
-                                    type="text"
-                                    value={navOrigin}
-                                    readOnly
-                                    className="bg-transparent text-white text-sm font-semibold w-full outline-none placeholder:text-white/50"
-                                />
-                            </div>
-                            {/* Entrada de destino */}
-                            <div className="bg-black/20 rounded-lg flex items-center px-3 py-2 border border-white/10">
-                                <div className="w-4 h-4 rounded-full border-2 border-red-200 mr-3 bg-red-500"></div>
-                                <input
-                                    type="text"
-                                    value={navDestination || selection?.destination || ""}
-                                    placeholder="Seleccionar destino..."
-                                    readOnly
-                                    className="bg-transparent text-white text-sm font-semibold w-full outline-none placeholder:text-white/50"
-                                />
+                <>
+                    {!selectingMode ? (
+                        <div className="absolute top-0 left-0 w-full z-1200 bg-red-800 rounded-b-8xl shadow-2xl p-4 pt-12 animate-in slide-in-from-top duration-300">
+                            <div className="flex items-center gap-3 mb-4">
+                                <button onClick={exitNavigation} className="text-white p-1 hover:bg-white/10 rounded-full">
+                                    <ArrowLeft size={24} />
+                                </button>
+                                <div className="flex-1 flex flex-col gap-2">
+                                    {/* Entrada de origen */}
+                                    <div
+                                        className="bg-black/20 rounded-lg flex items-center px-3 py-2 border border-white/10 cursor-pointer hover:bg-black/30 transition-colors"
+                                        onClick={() => setSelectingMode('origin')}
+                                    >
+                                        <div className="w-4 h-4 rounded-full border-2 border-white/60 mr-3"></div>
+                                        <div className="flex-1 text-white text-sm font-semibold truncate">
+                                            {navOrigin || "Tu ubicación"}
+                                        </div>
+                                    </div>
+                                    {/* Entrada de destino */}
+                                    <div
+                                        className="bg-black/20 rounded-lg flex items-center px-3 py-2 border border-white/10 cursor-pointer hover:bg-black/30 transition-colors"
+                                        onClick={() => setSelectingMode('destination')}
+                                    >
+                                        <div className="w-4 h-4 rounded-full border-2 border-red-200 mr-3 bg-red-500"></div>
+                                        <div className="flex-1 text-white text-sm font-semibold truncate">
+                                            {navDestination || "Seleccionar destino..."}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-3 text-white">
+                                    <MoreHorizontal size={24} />
+                                    <button onClick={(e) => { e.stopPropagation(); handleSwapOriginDest(); }} className="hover:bg-white/20 rounded-full p-1 transition-colors">
+                                        <ArrowUpDown size={20} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-3 text-white">
-                            <MoreHorizontal size={24} />
-                            <ArrowUpDown size={20} />
+                    ) : (
+                        <div className="absolute top-0 left-0 w-full z-1200 p-4 pt-12 flex justify-center pointer-events-none">
+                            <div className="bg-red-800 text-white px-6 py-3 rounded-full shadow-2xl pointer-events-auto flex items-center gap-4 animate-in slide-in-from-top duration-300">
+                                <span className="font-bold text-sm">
+                                    {selectingMode === 'origin' ? "Selecciona el Origen" : "Selecciona el Destino"} en el mapa
+                                </span>
+                                <button
+                                    onClick={() => setSelectingMode(null)}
+                                    className="bg-white/20 hover:bg-white/30 rounded-full p-1 transition-colors"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    )}
+                </>
             )}
 
             {/* --- NORMAL TOP UI --- */}
@@ -475,7 +623,7 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
                                 className="w-full text-base outline-none text-gray-700 placeholder:text-gray-400 font-medium"
                             />
                             {showSuggestions && searchResults.length > 0 && (
-                                <div className="absolute top-full left-0 w-full bg-white rounded-lg shadow-xl mt-2 overflow-hidden z-1300">
+                                <div className="absolute top-full left-0 w-full bg-white rounded-lg shadow-xl mt-2 max-h-60 overflow-y-auto no-scrollbar z-1300">
                                     {searchResults.map((result, idx) => (
                                         <button
                                             key={idx}
@@ -497,14 +645,14 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
                     </div>
                     {/* Filter Chips */}
                     <div className="flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto pb-1">
-                        {['Cafeteria', 'Gimnasio', 'Salones', 'Biblioteca'].map((chip, idx) => (
+                        {['Cafeteria', 'Gimnasio', 'Auditorio', 'Biblioteca'].map((chip, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => handleFilterClick(chip)}
                                 className="bg-white whitespace-nowrap px-4 py-2 rounded-full shadow-md text-xs font-bold text-gray-800 flex items-center gap-1.5 active:scale-95 transition-transform"
                             >
                                 <span className="text-gray-900 text-sm">
-                                    {chip === 'Cafeteria' && '🍴'} {chip === 'Gimnasio' && '🏋️'} {chip === 'Salones' && '🏫'} {chip === 'Biblioteca' && '📚'}
+                                    {chip === 'Cafeteria' && '🍴'} {chip === 'Gimnasio' && '🏋️'} {chip === 'Auditorio' && '🎭'} {chip === 'Biblioteca' && '📚'}
                                 </span>
                                 {chip}
                             </button>
@@ -537,8 +685,14 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
                     <MapClickHandler activeTab={activeTab} onMapClick={handleMapClick} />
 
                     {/* Markers */}
-                    {buildings.map((b) => renderMarker(b.nombre, b.lat, b.lon, `b-${b.id}`))}
-                    {locations.map((loc, idx) => renderMarker(loc.name, loc.lat, loc.lon, `loc-${idx}`))}
+                    {/* Filter out buildings that are already in customPins to avoid overlap */}
+                    {buildings
+                        .filter(b => !customPins.some(p => p.name === (b.name || b.nombre)))
+                        .filter(b => !hiddenPinIds.includes(`b-${b.id}`))
+                        .map((b) => renderMarker(b.name || b.nombre, b.lat, b.lon, `b-${b.id}`))}
+                    {locations
+                        .filter(l => !hiddenPinIds.includes(`loc-${locations.indexOf(l)}`)) // Using index as ID base
+                        .map((loc, idx) => renderMarker(loc.name, loc.lat, loc.lon, `loc-${idx}`))}
                     {customPins.map((pin) => renderMarker(pin.name, pin.lat, pin.lon, `cust-${pin.id}`, true))}
 
                     {route && route.length > 0 && (
@@ -552,10 +706,11 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
                 </MapContainer>
             </div>
 
-            {/* --- ADD PIN FORM OVERLAY (Compact) --- */}
             {pendingPin && (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-2xl z-1500 w-64 animate-in fade-in zoom-in duration-200">
-                    <h3 className="font-bold text-gray-800 text-sm mb-3 text-center">Nuevo Lugar</h3>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-2xl w-64 animate-in fade-in zoom-in duration-200" style={{ zIndex: 1500 }}>
+                    <h3 className="font-bold text-gray-800 text-sm mb-3 text-center">
+                        {editingPinId ? 'Editar: Arrastra para mover' : 'Nuevo Lugar'}
+                    </h3>
                     <div className="flex flex-col gap-3">
                         <input
                             type="text"
@@ -567,10 +722,7 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
                         />
                         <div className="flex gap-2">
                             <button
-                                onClick={() => {
-                                    setPendingPin(null);
-                                    setPinName("");
-                                }}
+                                onClick={handleCancelSave}
                                 className="flex-1 bg-gray-100 text-gray-700 text-xs font-bold py-2 rounded-lg hover:bg-gray-200 transition-colors"
                             >
                                 Cancelar
@@ -579,7 +731,7 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
                                 onClick={handleSavePin}
                                 className="flex-1 bg-[#b91c1c] text-white text-xs font-bold py-2 rounded-lg shadow-md hover:bg-red-700 transition-colors"
                             >
-                                Guardar
+                                {editingPinId ? 'Actualizar' : 'Guardar'}
                             </button>
                         </div>
                     </div>
@@ -599,8 +751,11 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
                     <div className="flex items-center justify-between mb-4">
                         <div>
                             <h2 className="text-2xl font-black">
-                                {route ? `${navInfo?.distancia || 0} m` : 'Calculando...'}
+                                {navInfo?.distancia ? `${navInfo.distancia} m` : (route ? 'Calculando...' : '')}
                             </h2>
+                            <p className="text-lg font-bold opacity-90">
+                                {navInfo?.tiempo || ''}
+                            </p>
                             <p className="text-sm font-medium opacity-80">
                                 {navDestination || "Destino seleccionado"}
                             </p>
@@ -655,7 +810,7 @@ const MapComponent = ({ buildings, route, navInfo, onSelectPoint, onCalculateRou
                     <div className="bg-[#b30000] rounded-[2.5rem] px-6 py-4 flex justify-between items-center shadow-2xl relative">
                         {/* Nav Items... Same as before */}
                         <button
-                            onClick={() => setActiveTab('estacionamiento')}
+                            onClick={() => navigate('/parking')}
                             className={`flex flex-col items-center gap-1 group transition-colors ${activeTab === 'estacionamiento' ? 'opacity-100' : 'opacity-70'}`}
                         >
                             <Car className="h-6 w-6 text-white group-hover:text-white transition-colors" />

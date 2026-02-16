@@ -80,3 +80,26 @@ html,
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Pin degradado rojo */
+.gradient-red-pin {
+  background: linear-gradient(to bottom, #ffcccc, #800000);
+  border: 2px solid white;
+  border-radius: 50% 50% 50% 0;
+  width: 30px;
+  height: 30px;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.gradient-red-pin::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

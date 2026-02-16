@@ -145,3 +145,96 @@ class SavedPlace(db.Model):
             "user_boleta": self.user_boleta
         }
 
+class ParkingSpace(db.Model):
+    __tablename__ = "parking_spaces"
+    id = db.Column(db.Integer, primary_key=True)
+    space_number = db.Column(db.String(10), unique=True, nullable=False)  # e.g., "A-12"
+    section = db.Column(db.String(5), nullable=False)  # "A", "B", "C"
+    row_number = db.Column(db.Integer)
+    position_number = db.Column(db.Integer)
+    lat = db.Column(db.Float, nullable=False)
+    lon = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(20), default='available')  # available, occupied, reserved
+    occupied_by = db.Column(db.String(20), db.ForeignKey('usuarios.boleta'))
+    occupied_at = db.Column(db.DateTime)
+    reserved_by = db.Column(db.String(20), db.ForeignKey('usuarios.boleta'))
+    reserved_at = db.Column(db.DateTime)
+    reservation_expires_at = db.Column(db.DateTime)
+    distance_to_building_1 = db.Column(db.Float)
+    distance_to_building_2 = db.Column(db.Float)
+    distance_to_building_3 = db.Column(db.Float)
+    last_updated = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+    # Relationships
+    occupant = db.relationship('Usuario', foreign_keys=[occupied_by], backref=db.backref('occupied_spaces', lazy=True))
+    reserver = db.relationship('Usuario', foreign_keys=[reserved_by], backref=db.backref('reserved_spaces', lazy=True))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "space_number": self.space_number,
+            "section": self.section,
+            "row": self.row_number,
+            "position": self.position_number,
+            "lat": self.lat,
+            "lon": self.lon,
+            "status": self.status,
+            "occupied_by": self.occupied_by,
+            "occupied_at": self.occupied_at.isoformat() if self.occupied_at else None,
+            "reserved_by": self.reserved_by,
+            "reserved_at": self.reserved_at.isoformat() if self.reserved_at else None,
+            "reservation_expires_at": self.reservation_expires_at.isoformat() if self.reservation_expires_at else None,
+            "distances": {
+                "building_1": self.distance_to_building_1,
+                "building_2": self.distance_to_building_2,
+                "building_3": self.distance_to_building_3
+            },
+            "last_updated": self.last_updated.isoformat() if self.last_updated else None
+        }
+
+class ParkingReservation(db.Model):
+    __tablename__ = "parking_reservations"
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(db.Integer, db.ForeignKey('parking_spaces.id'), nullable=False)
+    user_boleta = db.Column(db.String(20), db.ForeignKey('usuarios.boleta'), nullable=False)
+    reserved_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    expires_at = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(20), default='active')  # active, expired, cancelled, completed
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    # Relationships
+    space = db.relationship('ParkingSpace', backref=db.backref('reservations', lazy=True))
+    user = db.relationship('Usuario', backref=db.backref('parking_reservations', lazy=True))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "space_id": self.space_id,
+            "space_number": self.space.space_number if self.space else None,
+            "user_boleta": self.user_boleta,
+            "reserved_at": self.reserved_at.isoformat() if self.reserved_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+class ParkingHistory(db.Model):
+    __tablename__ = "parking_history"
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(db.Integer, db.ForeignKey('parking_spaces.id'), nullable=False)
+    user_boleta = db.Column(db.String(20))
+    action = db.Column(db.String(20), nullable=False)  # occupy, vacate, reserve, cancel
+    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    # Relationships
+    space = db.relationship('ParkingSpace', backref=db.backref('history', lazy=True))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "space_id": self.space_id,
+            "space_number": self.space.space_number if self.space else None,
+            "user_boleta": self.user_boleta,
+            "action": self.action,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None
+        }

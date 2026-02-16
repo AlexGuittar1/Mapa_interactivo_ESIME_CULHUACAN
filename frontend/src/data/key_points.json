@@ -1,0 +1,359 @@
+[
+  {
+    "id": 1,
+    "name": "Cancha de Futbol Americano",
+    "lat": 19.331476014854427,
+    "lon": -99.11261469125749,
+    "type": "static"
+  },
+  {
+    "id": 2,
+    "name": "Cancha de Basquetbol 2",
+    "lat": 19.331584847131296,
+    "lon": -99.11198705434802,
+    "type": "static"
+  },
+  {
+    "id": 3,
+    "name": "Cancha de Basquetbol 1",
+    "lat": 19.331354527575986,
+    "lon": -99.11182343959808,
+    "type": "static"
+  },
+  {
+    "id": 4,
+    "name": "Cancha de Futbol",
+    "lat": 19.331341872645954,
+    "lon": -99.11199241876604,
+    "type": "static"
+  },
+  {
+    "id": 6,
+    "name": "Alberca de natación",
+    "lat": 19.331063463937127,
+    "lon": -99.1120406985283,
+    "type": "static"
+  },
+  {
+    "id": 7,
+    "name": "Entrada a Canchas",
+    "lat": 19.33080530271033,
+    "lon": -99.112164080143,
+    "type": "static"
+  },
+  {
+    "id": 8,
+    "name": "Entrada a Gimnacio de Basquetbol/Voleibol/Taekwondo",
+    "lat": 19.330709124894057,
+    "lon": -99.1120406985283,
+    "type": "static"
+  },
+  {
+    "id": 9,
+    "name": "Gimnacio de Basquetbol/Voleibol/Taekwondo",
+    "lat": 19.330696469914013,
+    "lon": -99.11176711320878,
+    "type": "static"
+  },
+  {
+    "id": 1010,
+    "name": "Estacionamiento Sección 1",
+    "lat": 19.3304003431011,
+    "lon": -99.1124939918518,
+    "type": "static"
+  },
+  {
+    "id": 1011,
+    "name": "Estacionamiento Sección 2",
+    "lat": 19.3300004445018,
+    "lon": -99.112520813942,
+    "type": "static"
+  },
+  {
+    "id": 12,
+    "name": "Estacionamiento sección 3",
+    "lat": 19.329509428426707,
+    "lon": -99.11255568265916,
+    "type": "static"
+  },
+  {
+    "id": 13,
+    "name": "Estacionamiento sección 4",
+    "lat": 19.329000693719898,
+    "lon": -99.11259055137636,
+    "type": "static"
+  },
+  {
+    "id": 14,
+    "name": "Estacionamiento de Motocicletas",
+    "lat": 19.328679253560956,
+    "lon": -99.11264955997468,
+    "type": "static"
+  },
+  {
+    "id": 15,
+    "name": "Estaciónamiento de bicicletas",
+    "lat": 19.328512205669526,
+    "lon": -99.11225795745851,
+    "type": "static"
+  },
+  {
+    "id": 16,
+    "name": "Caseta",
+    "lat": 19.32876024641653,
+    "lon": -99.11287754774095,
+    "type": "static"
+  },
+  {
+    "id": 17,
+    "name": "Entrada ESIME CULHUACAN",
+    "lat": 19.328499550519272,
+    "lon": -99.11288827657701,
+    "type": "static"
+  },
+  {
+    "id": 18,
+    "name": "Cafeteria Carpa Azul",
+    "lat": 19.329013348831324,
+    "lon": -99.11232501268388,
+    "type": "static"
+  },
+  {
+    "id": 20,
+    "name": "Entrada Edificio 1 Lado del Auditorio",
+    "lat": 19.328717218967,
+    "lon": -99.11157935857774,
+    "type": "static"
+  },
+  {
+    "id": 21,
+    "name": "Entrada Edificio 1 Lado del Estacionamiento",
+    "lat": 19.328783025649916,
+    "lon": -99.11234378814697,
+    "type": "static"
+  },
+  {
+    "id": 22,
+    "name": "Edificio 2 Lado del Estacionamiento",
+    "lat": 19.32928163696283,
+    "lon": -99.11231964826587,
+    "type": "static"
+  },
+  {
+    "id": 23,
+    "name": "Edificio 3 Lado del Estacionamiento",
+    "lat": 19.329777715743415,
+    "lon": -99.1122740507126,
+    "type": "static"
+  },
+  {
+    "id": 24,
+    "name": "Laboratorios pesados",
+    "lat": 19.328962728379743,
+    "lon": -99.11316186189653,
+    "type": "static"
+  },
+  {
+    "id": 25,
+    "name": "Laboratorios Física y Química",
+    "lat": 19.32933731935001,
+    "lon": -99.11314845085145,
+    "type": "static"
+  },
+  {
+    "id": 26,
+    "name": "Papeleria ESIME CULHUACAN",
+    "lat": 19.329772653722642,
+    "lon": -99.11300361156465,
+    "type": "static"
+  },
+  {
+    "id": 27,
+    "name": "Libreria ESIME CULHUACAN",
+    "lat": 19.32989161116915,
+    "lon": -99.11313235759737,
+    "type": "static"
+  },
+  {
+    "id": 28,
+    "name": "Salones Provicionales del lado de la libreria",
+    "lat": 19.33014724283552,
+    "lon": -99.11313503980638,
+    "type": "static"
+  },
+  {
+    "id": 29,
+    "name": "Entrada de Biblioteca",
+    "lat": 19.3299928514809,
+    "lon": -99.11156058311464,
+    "type": "static"
+  },
+  {
+    "id": 30,
+    "name": "Edificio 3 Lado de Cafeteria",
+    "lat": 19.32971697148389,
+    "lon": -99.11149889230731,
+    "type": "static"
+  },
+  {
+    "id": 31,
+    "name": "Edificio 2 Lado de Cafeteria",
+    "lat": 19.329223423537776,
+    "lon": -99.11153912544252,
+    "type": "static"
+  },
+  {
+    "id": 32,
+    "name": "Entrada de CAP",
+    "lat": 19.329995382487894,
+    "lon": -99.11126017570496,
+    "type": "static"
+  },
+  {
+    "id": 33,
+    "name": "Salida de CAP",
+    "lat": 19.329982727452546,
+    "lon": -99.11105901002885,
+    "type": "static"
+  },
+  {
+    "id": 34,
+    "name": "Cafeteria Principal",
+    "lat": 19.32942843594261,
+    "lon": -99.11115020513536,
+    "type": "static"
+  },
+  {
+    "id": 35,
+    "name": "Estacionamiento Profesores",
+    "lat": 19.3293322573156,
+    "lon": -99.11074519157411,
+    "type": "static"
+  },
+  {
+    "id": 36,
+    "name": "Entrada Edificio del Banco y Auditorio",
+    "lat": 19.32881846000665,
+    "lon": -99.11095440387727,
+    "type": "static"
+  },
+  {
+    "id": 37,
+    "name": "Entrada al Auditorio",
+    "lat": 19.3289298250778,
+    "lon": -99.11065936088563,
+    "type": "static"
+  },
+  {
+    "id": 38,
+    "name": "Auditorio",
+    "lat": 19.3287956807782,
+    "lon": -99.11055743694307,
+    "type": "static"
+  },
+  {
+    "id": 39,
+    "name": "Explanada ESIME CULHUACAN",
+    "lat": 19.32860079169383,
+    "lon": -99.11116361618043,
+    "type": "static"
+  },
+  {
+    "id": 40,
+    "name": "Escultura ESIME CULHUACAN",
+    "lat": 19.32891210791246,
+    "lon": -99.11109656095506,
+    "type": "static"
+  },
+  {
+    "id": 41,
+    "name": "Edificio 3",
+    "lat": 19.32974481260564,
+    "lon": -99.11189854145051,
+    "type": "static"
+  },
+  {
+    "id": 42,
+    "name": "Edificio 2",
+    "lat": 19.329248733725134,
+    "lon": -99.11192536354066,
+    "type": "static"
+  },
+  {
+    "id": 43,
+    "name": "Edificio 1",
+    "lat": 19.328752653338025,
+    "lon": -99.11196827888489,
+    "type": "static"
+  },
+  {
+    "id": 44,
+    "name": "Casillero de Cheyenes",
+    "lat": 19.33047121110522,
+    "lon": -99.11221772432329,
+    "type": "static"
+  },
+  {
+    "id": 45,
+    "name": "Gimnacio de Cheyenes",
+    "lat": 19.330400343101125,
+    "lon": -99.11222308874132,
+    "type": "static"
+  },
+  {
+    "id": 46,
+    "name": "Taller de Musica",
+    "lat": 19.330230765966522,
+    "lon": -99.11222979426387,
+    "type": "static"
+  },
+  {
+    "id": 47,
+    "name": "Estacionamiento sección 3",
+    "lat": 19.329524614513005,
+    "lon": -99.11256372928621,
+    "type": "static"
+  },
+  {
+    "id": 48,
+    "name": "Cancha Basquetbol 1",
+    "lat": 19.331584847131296,
+    "lon": -99.11199510097505,
+    "type": "static"
+  },
+  {
+    "id": 49,
+    "name": "Cancha Basquetbol 2",
+    "lat": 19.331351996590058,
+    "lon": -99.11182343959808,
+    "type": "static"
+  },
+  {
+    "id": 50,
+    "name": "Cancha de Futbol 2",
+    "lat": 19.331114083737653,
+    "lon": -99.1116625070572,
+    "type": "static"
+  },
+  {
+    "id": 51,
+    "name": "Entrada a Canchas",
+    "lat": 19.33078505475371,
+    "lon": -99.11215603351593,
+    "type": "static"
+  },
+  {
+    "id": 52,
+    "name": "Entrada a Gimnacio de Basquetbol/Voleibol/Taekwondo",
+    "lat": 19.330711655889946,
+    "lon": -99.11205142736436,
+    "type": "static"
+  },
+  {
+    "id": 53,
+    "name": "Gimnacio de Basquetbol/Voleibol/Taekwondo",
+    "lat": 19.33075215181887,
+    "lon": -99.11175370216371,
+    "type": "static"
+  }
+]

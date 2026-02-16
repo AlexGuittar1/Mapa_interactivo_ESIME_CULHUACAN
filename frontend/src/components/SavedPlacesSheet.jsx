@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Bookmark, Edit, Plus, User, Clock, MapPin, Trash2, Heart } from 'lucide-react';
-// api import removed as it does not exist as default export
+import { X, Bookmark, Edit, Plus, User, Clock, MapPin, Trash2, Heart, Check } from 'lucide-react';
+import { getSavedPlaces, savePlace, deletePlace, updatePlace } from '../services/api';
+import keyPoints from '../data/key_points.json';
 
 const SavedPlacesSheet = ({ onClose }) => {
     const [savedPlaces, setSavedPlaces] = useState([]);
@@ -8,24 +9,23 @@ const SavedPlacesSheet = ({ onClose }) => {
     const [allBuildings, setAllBuildings] = useState([]); // List of system buildings to Favorite
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
+    const [editingId, setEditingId] = useState(null);
+    const [editName, setEditName] = useState("");
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             const parsedUser = JSON.parse(storedUser);
             setUser(parsedUser);
-            fetchSavedPlaces(parsedUser.boleta);
-            fetchAllBuildings();
+            loadSavedPlaces(parsedUser.boleta);
+            setAllBuildings(keyPoints); // Use local JSON data
         }
     }, []);
 
-    const fetchSavedPlaces = async (boleta) => {
+    const loadSavedPlaces = async (boleta) => {
         try {
-            const res = await fetch(`http://127.0.0.1:5001/api/saved-places?user_boleta=${boleta}`);
-            if (res.ok) {
-                const data = await res.json();
-                setSavedPlaces(data);
-            }
+            const data = await getSavedPlaces(boleta);
+            if (Array.isArray(data)) setSavedPlaces(data);
         } catch (error) {
             console.error("Error fetching saved places:", error);
         } finally {
@@ -33,54 +33,55 @@ const SavedPlacesSheet = ({ onClose }) => {
         }
     };
 
-    const fetchAllBuildings = async () => {
-        try {
-            const res = await fetch(`http://127.0.0.1:5001/api/buildings`);
-            if (res.ok) {
-                const data = await res.json();
-                setAllBuildings(data);
-            }
-        } catch (error) {
-            console.error("Error fetching buildings:", error);
-        }
-    };
-
     const handleDelete = async (id) => {
         try {
-            const res = await fetch(`http://127.0.0.1:5001/api/saved-places/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                setSavedPlaces(prev => prev.filter(p => p.id !== id));
-            }
+            await deletePlace(id);
+            setSavedPlaces(prev => prev.filter(p => p.id !== id));
         } catch (error) {
             console.error("Error deleting place:", error);
         }
     };
 
+    const handleStartEdit = (place) => {
+        setEditingId(place.id);
+        setEditName(place.name);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editName.trim()) return;
+        try {
+            const updated = await updatePlace(editingId, { name: editName });
+            setSavedPlaces(prev => prev.map(p => p.id === editingId ? { ...p, name: updated.name } : p));
+            setEditingId(null);
+        } catch (error) {
+            console.error("Error updating place:", error);
+            alert("Error al actualizar");
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setEditName("");
+    };
+
     const handleAddFavorite = async (building) => {
         if (!user) return;
         // Check if already saved
-        if (savedPlaces.some(p => p.name === building.nombre)) {
+        if (savedPlaces.some(p => p.name === building.name)) {
             alert("Ya está guardado");
             return;
         }
 
         try {
-            const res = await fetch(`http://127.0.0.1:5001/api/saved-places`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_boleta: user.boleta,
-                    name: building.nombre,
-                    lat: building.lat,
-                    lon: building.lon,
-                    type: 'favorite'
-                })
+            const newPlace = await savePlace({
+                user_boleta: user.boleta,
+                name: building.name,
+                lat: building.lat,
+                lon: building.lon,
+                type: 'favorite'
             });
-            if (res.ok) {
-                const newPlace = await res.json();
-                setSavedPlaces(prev => [...prev, newPlace]);
-                setIsAdding(false); // Go back to list
-            }
+            setSavedPlaces(prev => [...prev, newPlace]);
+            setIsAdding(false); // Go back to list
         } catch (error) {
             console.error("Error adding favorite:", error);
         }
@@ -151,7 +152,7 @@ const SavedPlacesSheet = ({ onClose }) => {
                                         <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
                                             <MapPin size={16} />
                                         </div>
-                                        <span className="text-sm font-bold text-gray-800">{b.nombre}</span>
+                                        <span className="text-sm font-bold text-gray-800">{b.name}</span>
                                     </div>
                                     <button
                                         onClick={() => handleAddFavorite(b)}
@@ -178,22 +179,64 @@ const SavedPlacesSheet = ({ onClose }) => {
                                 <div key={place.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
                                     <div className="flex items-center gap-4 flex-1">
                                         {renderIcon(place.type)}
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-gray-900 leading-tight">
-                                                {place.name}
-                                            </span>
-                                            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-0.5">
-                                                {place.type === 'custom' ? 'Personalizado' : 'Favorito'}
-                                            </span>
-                                        </div>
+
+                                        {editingId === place.id ? (
+                                            <div className="flex items-center gap-2 flex-1">
+                                                <input
+                                                    type="text"
+                                                    value={editName}
+                                                    onChange={(e) => setEditName(e.target.value)}
+                                                    className="w-full border rounded px-2 py-1 text-sm outline-none focus:border-red-500"
+                                                    autoFocus
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-gray-900 leading-tight">
+                                                    {place.name}
+                                                </span>
+                                                <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-0.5">
+                                                    {place.type === 'custom' ? 'Personalizado' : 'Favorito'}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    <button
-                                        onClick={() => handleDelete(place.id)}
-                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
+                                    <div className="flex items-center gap-1 pl-2">
+                                        {editingId === place.id ? (
+                                            <>
+                                                <button
+                                                    onClick={handleSaveEdit}
+                                                    className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                                                >
+                                                    <Check size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={handleCancelEdit}
+                                                    className="p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors"
+                                                >
+                                                    <X size={18} />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {place.type === 'custom' && (
+                                                    <button
+                                                        onClick={() => handleStartEdit(place)}
+                                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleDelete(place.id)}
+                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>

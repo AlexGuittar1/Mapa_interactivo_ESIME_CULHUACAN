@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSchedule, updateUser } from '../services/api';
-import esimeLogo from '../assets/esime-1.png';
+import esimeLogo from '../assets/esime-logo.png';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -166,6 +166,20 @@ const Dashboard = () => {
                             ))
                         )}
                     </div>
+                </div>
+
+                {/* Logout Button */}
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                    <button
+                        onClick={() => {
+                            localStorage.removeItem('user');
+                            navigate('/');
+                        }}
+                        className="w-full bg-gradient-to-r from-[#b30000] to-[#1a1a1a] text-white py-3 px-6 rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                        <span>🚪</span>
+                        Cerrar Sesión
+                    </button>
                 </div>
 
             </div>
