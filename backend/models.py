@@ -2,6 +2,10 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+# ============================================================================
+# TABLAS DE NAVEGACIÓN (Sin cambios)
+# ============================================================================
+
 class EdificioDB(db.Model):
     __tablename__ = "edificios"
     id = db.Column(db.Integer, primary_key=True)
@@ -22,118 +26,235 @@ class CaminoDB(db.Model):
     def to_dict(self):
         return {"origen": self.origen, "destino": self.destino, "distancia": self.distancia}
 
-class Usuario(db.Model):
-    __tablename__ = "usuarios"
+# ============================================================================
+# NUEVOS MODELOS DE HORARIOS (Refactorizados)
+# ============================================================================
+
+class Alumno(db.Model):
+    """Modelo de alumnos (anteriormente usuarios)"""
+    __tablename__ = "alumnos"
     id = db.Column(db.Integer, primary_key=True)
     boleta = db.Column(db.String(20), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True)
     nombre = db.Column(db.String(100), nullable=False)
     carrera = db.Column(db.String(100))
-    vehiculo = db.Column(db.String(20), default='ninguno')
-    id_grupo = db.Column(db.Integer, db.ForeignKey('grupos.id_grupo')) 
-
-    grupo = db.relationship('Grupo', backref=db.backref('alumnos', lazy=True))
-
-    def to_dict(self):
-        return {
-            "boleta": self.boleta,
-            "email": self.email,
-            "nombre": self.nombre,
-            "carrera": self.carrera,
-            "vehiculo": self.vehiculo,
-            "grupo": self.grupo.clave if self.grupo else None
-        }
-
-class Asignatura(db.Model):
-    __tablename__ = "asignaturas"
-    id_asignatura = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String, nullable=False)
-
-class Grupo(db.Model):
-    __tablename__ = "grupos"
-    id_grupo = db.Column(db.Integer, primary_key=True)
-    clave = db.Column(db.String, nullable=False) # e.g. 3CV12
-
-class Profesor(db.Model):
-    __tablename__ = "profesores"
-    id_profesor = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String, nullable=False)
-
-class Salon(db.Model):
-    __tablename__ = "salones"
-    id_salon = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(20), nullable=False)
-    # Note: The database inspection showed id_salon but NOT edificio_id as a separate verified FK in PRAGMA, 
-    # but the original code had it. We will assume mapping via name or we need to check if 'edificio_id' exists.
-    # The 'inspect_db' output for salones only showed id_salon and nombre. 
-    # We will infer building from name or need a mapping strategy if column is missing.
-    # BUT wait, the original models had edificio_id. Let's assume the DB might NOT have it if it wasn't in 'inspect_db' output.
-    # The inspect_db output for salones was: (0, 'id_salon', 'INTEGER'...), (1, 'nombre', 'TEXT'...)
-    # So NO edificio_id column in actual DB currently? 
-    # If so, we can't map it easily yet without modification or heuristics.
-    # However, 'horarios' links everything.
-
-class Horario(db.Model):
-    __tablename__ = "horarios"
-    id_horario = db.Column(db.Integer, primary_key=True)
-    id_asignatura = db.Column(db.Integer, db.ForeignKey('asignaturas.id_asignatura'))
+    vehiculo = db.Column(db.String(20))
     id_grupo = db.Column(db.Integer, db.ForeignKey('grupos.id_grupo'))
-    id_profesor = db.Column(db.Integer, db.ForeignKey('profesores.id_profesor'))
-    id_salon = db.Column(db.Integer, db.ForeignKey('salones.id_salon'))
-    dia = db.Column(db.String(15))
-    hora_inicio = db.Column(db.String(10))
-    hora_fin = db.Column(db.String(10))
 
-    asignatura = db.relationship('Asignatura')
-    grupo = db.relationship('Grupo')
-    profesor = db.relationship('Profesor')
-    salon = db.relationship('Salon')
-
-    def to_dict(self):
-        # Heuristic to infer building from salon name (e.g. "1101" -> "Edificio 1")
-        salon_name = self.salon.nombre if self.salon else ""
-        building_map = {"1": "Edificio 1", "2": "Edificio 2", "3": "Edificio 3"}
-        inferred_building = building_map.get(salon_name[0], "Campus ESIME") if salon_name else "Desconocido"
-        
-        return {
-            "materia": self.asignatura.nombre if self.asignatura else "Desconocida",
-            "grupo": self.grupo.clave if self.grupo else "?",
-            "profesor": self.profesor.nombre if self.profesor else "?",
-            "sala": salon_name,
-            "edificio": inferred_building,
-            "dia": self.dia,
-            "hora": f"{self.hora_inicio} - {self.hora_fin}"
-        }
-
-class Estacionamiento(db.Model):
-    __tablename__ = "estacionamiento"
-    id = db.Column(db.Integer, primary_key=True)
-    numero = db.Column(db.String(10), unique=True)
-    ocupado = db.Column(db.Boolean, default=False)
-    latitud = db.Column(db.Float)
-    longitud = db.Column(db.Float)
-    tipo = db.Column(db.String(20), default='general')
+    # Relaciones
+    inscripciones = db.relationship('Inscripcion', back_populates='alumno', lazy=True, cascade='all, delete-orphan')
+    saved_places = db.relationship('SavedPlace', back_populates='user', lazy=True, cascade='all, delete-orphan')
+    occupied_spaces = db.relationship('ParkingSpace', foreign_keys='ParkingSpace.occupied_by', back_populates='occupant', lazy=True)
+    reserved_spaces = db.relationship('ParkingSpace', foreign_keys='ParkingSpace.reserved_by', back_populates='reserver', lazy=True)
 
     def to_dict(self):
         return {
             "id": self.id,
-            "numero": self.numero,
-            "ocupado": self.ocupado,
-            "coords": [self.latitud, self.longitud],
+            "boleta": self.boleta,
+            "email": self.email,
+            "nombre": self.nombre,
+            "carrera": self.carrera,
+            "vehiculo": self.vehiculo
+        }
+
+class Materia(db.Model):
+    """Modelo de materias/asignaturas"""
+    __tablename__ = "materias"
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(200), unique=True, nullable=False)
+    codigo = db.Column(db.String(20), unique=True)
+    creditos = db.Column(db.Integer)
+    semestre = db.Column(db.Integer)
+
+    # Relaciones
+    materias_grupos = db.relationship('MateriaGrupo', back_populates='materia', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "codigo": self.codigo,
+            "creditos": self.creditos,
+            "semestre": self.semestre
+        }
+
+class Profesor(db.Model):
+    """Modelo de profesores"""
+    __tablename__ = "profesores"
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(200), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True)
+    departamento = db.Column(db.String(100))
+
+    # Relaciones
+    materias_grupos = db.relationship('MateriaGrupo', back_populates='profesor', lazy=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "email": self.email,
+            "departamento": self.departamento
+        }
+
+class Salon(db.Model):
+    """Modelo de salones/aulas"""
+    __tablename__ = "salones"
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(50), unique=True, nullable=False)
+    edificio_id = db.Column(db.Integer, db.ForeignKey('edificios.id'))
+    capacidad = db.Column(db.Integer)
+    tipo = db.Column(db.String(20))  # 'aula', 'laboratorio', 'auditorio'
+
+    # Relaciones
+    edificio = db.relationship('EdificioDB', backref=db.backref('salones', lazy=True))
+    horarios = db.relationship('Horario', back_populates='salon', lazy=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "edificio_id": self.edificio_id,
+            "edificio": self.edificio.nombre if self.edificio else None,
+            "capacidad": self.capacidad,
             "tipo": self.tipo
         }
+
+class Grupo(db.Model):
+    """Modelo de grupos académicos"""
+    __tablename__ = "grupos"
+    id = db.Column(db.Integer, primary_key=True)
+    clave = db.Column(db.String(20), unique=True, nullable=False)  # ej: "1CM54", "3CV12"
+    semestre = db.Column(db.Integer, nullable=False)
+    turno = db.Column(db.String(20))  # 'matutino', 'vespertino', 'mixto'
+    carrera = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    # Relaciones
+    materias_grupos = db.relationship('MateriaGrupo', back_populates='grupo', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "clave": self.clave,
+            "semestre": self.semestre,
+            "turno": self.turno,
+            "carrera": self.carrera
+        }
+
+class MateriaGrupo(db.Model):
+    """Tabla central: Relación Materia-Grupo-Profesor"""
+    __tablename__ = "materias_grupos"
+    id = db.Column(db.Integer, primary_key=True)
+    materia_id = db.Column(db.Integer, db.ForeignKey('materias.id'), nullable=False)
+    grupo_id = db.Column(db.Integer, db.ForeignKey('grupos.id'), nullable=False)
+    profesor_id = db.Column(db.Integer, db.ForeignKey('profesores.id'))
+    ciclo_escolar = db.Column(db.String(20), nullable=False, default='2025-2026')
+
+    # Relaciones
+    materia = db.relationship('Materia', back_populates='materias_grupos')
+    grupo = db.relationship('Grupo', back_populates='materias_grupos')
+    profesor = db.relationship('Profesor', back_populates='materias_grupos')
+    horarios = db.relationship('Horario', back_populates='materia_grupo', lazy=True, cascade='all, delete-orphan')
+    inscripciones = db.relationship('Inscripcion', back_populates='materia_grupo', lazy=True, cascade='all, delete-orphan')
+
+    __table_args__ = (
+        db.UniqueConstraint('materia_id', 'grupo_id', 'ciclo_escolar', name='uq_materia_grupo_ciclo'),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "materia": self.materia.nombre if self.materia else None,
+            "grupo": self.grupo.clave if self.grupo else None,
+            "profesor": self.profesor.nombre if self.profesor else None,
+            "ciclo_escolar": self.ciclo_escolar
+        }
+
+class Horario(db.Model):
+    """Modelo de horarios (normalizado)"""
+    __tablename__ = "horarios"
+    id = db.Column(db.Integer, primary_key=True)
+    materia_grupo_id = db.Column(db.Integer, db.ForeignKey('materias_grupos.id'), nullable=False)
+    dia_semana = db.Column(db.Integer, nullable=False)  # 1=Lunes, 7=Domingo
+    hora_inicio = db.Column(db.String(10), nullable=False)  # Formato "HH:MM"
+    hora_fin = db.Column(db.String(10), nullable=False)
+    salon_id = db.Column(db.Integer, db.ForeignKey('salones.id'))
+    tipo_clase = db.Column(db.String(20), default='teoria')  # 'teoria', 'laboratorio', 'practica'
+
+    # Relaciones
+    materia_grupo = db.relationship('MateriaGrupo', back_populates='horarios')
+    salon = db.relationship('Salon', back_populates='horarios')
+
+    DIAS_SEMANA = {
+        1: 'Lunes',
+        2: 'Martes',
+        3: 'Miércoles',
+        4: 'Jueves',
+        5: 'Viernes',
+        6: 'Sábado',
+        7: 'Domingo'
+    }
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "materia": self.materia_grupo.materia.nombre if self.materia_grupo else None,
+            "grupo": self.materia_grupo.grupo.clave if self.materia_grupo else None,
+            "profesor": self.materia_grupo.profesor.nombre if self.materia_grupo and self.materia_grupo.profesor else None,
+            "dia_semana": self.dia_semana,
+            "dia_nombre": self.DIAS_SEMANA.get(self.dia_semana, 'Desconocido'),
+            "hora_inicio": self.hora_inicio,
+            "hora_fin": self.hora_fin,
+            "salon": self.salon.nombre if self.salon else None,
+            "tipo_clase": self.tipo_clase
+        }
+
+class Inscripcion(db.Model):
+    """Tabla puente: Alumno ↔ MateriaGrupo"""
+    __tablename__ = "inscripciones"
+    id = db.Column(db.Integer, primary_key=True)
+    alumno_id = db.Column(db.Integer, db.ForeignKey('alumnos.id'), nullable=False)
+    materia_grupo_id = db.Column(db.Integer, db.ForeignKey('materias_grupos.id'), nullable=False)
+    fecha_inscripcion = db.Column(db.DateTime, default=db.func.current_timestamp())
+    calificacion = db.Column(db.Float)
+    estado = db.Column(db.String(20), default='activo')  # 'activo', 'baja', 'completado'
+
+    # Relaciones
+    alumno = db.relationship('Alumno', back_populates='inscripciones')
+    materia_grupo = db.relationship('MateriaGrupo', back_populates='inscripciones')
+
+    __table_args__ = (
+        db.UniqueConstraint('alumno_id', 'materia_grupo_id', name='uq_alumno_materia_grupo'),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "alumno": self.alumno.nombre if self.alumno else None,
+            "boleta": self.alumno.boleta if self.alumno else None,
+            "materia": self.materia_grupo.materia.nombre if self.materia_grupo else None,
+            "grupo": self.materia_grupo.grupo.clave if self.materia_grupo else None,
+            "fecha_inscripcion": self.fecha_inscripcion.isoformat() if self.fecha_inscripcion else None,
+            "calificacion": self.calificacion,
+            "estado": self.estado
+        }
+
+# ============================================================================
+# MODELOS DE ESTACIONAMIENTO (Actualizados con FK a alumnos)
+# ============================================================================
 
 class SavedPlace(db.Model):
     __tablename__ = "saved_places"
     id = db.Column(db.Integer, primary_key=True)
-    user_boleta = db.Column(db.String(20), db.ForeignKey('usuarios.boleta'), nullable=False)
+    user_boleta = db.Column(db.String(20), db.ForeignKey('alumnos.boleta'), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     lat = db.Column(db.Float, nullable=False)
     lon = db.Column(db.Float, nullable=False)
-    type = db.Column(db.String(20), default='custom') # 'custom', 'favorite', etc.
+    type = db.Column(db.String(20), default='custom')
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    user = db.relationship('Usuario', backref=db.backref('saved_places', lazy=True))
+    user = db.relationship('Alumno', back_populates='saved_places')
 
     def to_dict(self):
         return {
@@ -148,16 +269,16 @@ class SavedPlace(db.Model):
 class ParkingSpace(db.Model):
     __tablename__ = "parking_spaces"
     id = db.Column(db.Integer, primary_key=True)
-    space_number = db.Column(db.String(10), unique=True, nullable=False)  # e.g., "A-12"
-    section = db.Column(db.String(5), nullable=False)  # "A", "B", "C"
+    space_number = db.Column(db.String(10), unique=True, nullable=False)
+    section = db.Column(db.String(5), nullable=False)
     row_number = db.Column(db.Integer)
     position_number = db.Column(db.Integer)
     lat = db.Column(db.Float, nullable=False)
     lon = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default='available')  # available, occupied, reserved
-    occupied_by = db.Column(db.String(20), db.ForeignKey('usuarios.boleta'))
+    status = db.Column(db.String(20), default='available')
+    occupied_by = db.Column(db.String(20), db.ForeignKey('alumnos.boleta'))
     occupied_at = db.Column(db.DateTime)
-    reserved_by = db.Column(db.String(20), db.ForeignKey('usuarios.boleta'))
+    reserved_by = db.Column(db.String(20), db.ForeignKey('alumnos.boleta'))
     reserved_at = db.Column(db.DateTime)
     reservation_expires_at = db.Column(db.DateTime)
     distance_to_building_1 = db.Column(db.Float)
@@ -165,9 +286,8 @@ class ParkingSpace(db.Model):
     distance_to_building_3 = db.Column(db.Float)
     last_updated = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
-    # Relationships
-    occupant = db.relationship('Usuario', foreign_keys=[occupied_by], backref=db.backref('occupied_spaces', lazy=True))
-    reserver = db.relationship('Usuario', foreign_keys=[reserved_by], backref=db.backref('reserved_spaces', lazy=True))
+    occupant = db.relationship('Alumno', foreign_keys=[occupied_by], back_populates='occupied_spaces')
+    reserver = db.relationship('Alumno', foreign_keys=[reserved_by], back_populates='reserved_spaces')
 
     def to_dict(self):
         return {
@@ -196,15 +316,14 @@ class ParkingReservation(db.Model):
     __tablename__ = "parking_reservations"
     id = db.Column(db.Integer, primary_key=True)
     space_id = db.Column(db.Integer, db.ForeignKey('parking_spaces.id'), nullable=False)
-    user_boleta = db.Column(db.String(20), db.ForeignKey('usuarios.boleta'), nullable=False)
+    user_boleta = db.Column(db.String(20), db.ForeignKey('alumnos.boleta'), nullable=False)
     reserved_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     expires_at = db.Column(db.DateTime, nullable=False)
-    status = db.Column(db.String(20), default='active')  # active, expired, cancelled, completed
+    status = db.Column(db.String(20), default='active')
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    # Relationships
     space = db.relationship('ParkingSpace', backref=db.backref('reservations', lazy=True))
-    user = db.relationship('Usuario', backref=db.backref('parking_reservations', lazy=True))
+    user = db.relationship('Alumno', backref=db.backref('parking_reservations', lazy=True))
 
     def to_dict(self):
         return {
@@ -223,10 +342,9 @@ class ParkingHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     space_id = db.Column(db.Integer, db.ForeignKey('parking_spaces.id'), nullable=False)
     user_boleta = db.Column(db.String(20))
-    action = db.Column(db.String(20), nullable=False)  # occupy, vacate, reserve, cancel
+    action = db.Column(db.String(20), nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    # Relationships
     space = db.relationship('ParkingSpace', backref=db.backref('history', lazy=True))
 
     def to_dict(self):

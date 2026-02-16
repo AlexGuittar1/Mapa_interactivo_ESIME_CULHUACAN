@@ -6,62 +6,254 @@ KML Graph loaded with 431 nodes
 [33mPress CTRL+C to quit[0m
  * Restarting with stat
  * Debugger is active!
- * Debugger PIN: 120-294-970
-127.0.0.1 - - [09/Feb/2026 19:09:33] "OPTIONS /auth/login HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:09:33] "POST /auth/login HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:09:34] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:09:34] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:09:34] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:09:34] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:09:34] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:09:34] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:09:34] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:09:34] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:09:55] "OPTIONS /api/saved-places HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:09:55] "[35m[1mPOST /api/saved-places HTTP/1.1[0m" 201 -
-127.0.0.1 - - [09/Feb/2026 19:10:01] "OPTIONS /api/saved-places/8 HTTP/1.1" 200 -
-/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py:220: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
-  place = SavedPlace.query.get(id)
-127.0.0.1 - - [09/Feb/2026 19:10:01] "DELETE /api/saved-places/8 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:04] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:04] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:04] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:04] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:04] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:04] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:04] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:04] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:22] "OPTIONS /api/route HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:22] "POST /api/route HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:56] "OPTIONS /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:56] "OPTIONS /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:56] "GET /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:10:56] "GET /api/user/2025350215/schedule HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:31] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:31] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:31] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:31] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:31] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:31] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:31] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:31] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:34] "GET /api/parking/spaces HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:34] "GET /api/parking/stats HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:34] "GET /api/parking/spaces HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:34] "GET /api/parking/stats HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:39] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:39] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:39] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:39] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:39] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:39] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:39] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:11:39] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:14:30] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:14:30] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:14:30] "OPTIONS /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:14:30] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:14:30] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:14:30] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:14:30] "GET /api/parking HTTP/1.1" 200 -
-127.0.0.1 - - [09/Feb/2026 19:14:30] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+ * Debugger PIN: 838-752-498
+127.0.0.1 - - [16/Feb/2026 11:53:25] "OPTIONS /auth/login HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:25] "POST /auth/login HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:25] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:25] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:25] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:25] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:25] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:25] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:25] "[35m[1mGET /api/parking HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py", line 149, in get_parking
+    slots = Estacionamiento.query.all()
+            ^^^^^^^^^^^^^^^
+NameError: name 'Estacionamiento' is not defined
+127.0.0.1 - - [16/Feb/2026 11:53:25] "[35m[1mGET /api/parking HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py", line 149, in get_parking
+    slots = Estacionamiento.query.all()
+            ^^^^^^^^^^^^^^^
+NameError: name 'Estacionamiento' is not defined
+127.0.0.1 - - [16/Feb/2026 11:53:25] "[35m[1mGET /api/parking HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py", line 149, in get_parking
+    slots = Estacionamiento.query.all()
+            ^^^^^^^^^^^^^^^
+NameError: name 'Estacionamiento' is not defined
+127.0.0.1 - - [16/Feb/2026 11:53:28] "OPTIONS /api/user/2025350215/schedule HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:28] "OPTIONS /api/user/2025350215/schedule HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:28] "[35m[1mGET /api/user/2025350215/schedule HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py", line 154, in get_schedule
+    user = Usuario.query.filter_by(boleta=boleta).first()
+           ^^^^^^^
+NameError: name 'Usuario' is not defined
+127.0.0.1 - - [16/Feb/2026 11:53:28] "[35m[1mGET /api/user/2025350215/schedule HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py", line 154, in get_schedule
+    user = Usuario.query.filter_by(boleta=boleta).first()
+           ^^^^^^^
+NameError: name 'Usuario' is not defined
+127.0.0.1 - - [16/Feb/2026 11:53:28] "[35m[1mGET /api/user/2025350215/schedule HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py", line 154, in get_schedule
+    user = Usuario.query.filter_by(boleta=boleta).first()
+           ^^^^^^^
+NameError: name 'Usuario' is not defined
+127.0.0.1 - - [16/Feb/2026 11:53:31] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:31] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:31] "OPTIONS /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:31] "OPTIONS /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:31] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:31] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [16/Feb/2026 11:53:31] "[35m[1mGET /api/parking HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py", line 149, in get_parking
+    slots = Estacionamiento.query.all()
+            ^^^^^^^^^^^^^^^
+NameError: name 'Estacionamiento' is not defined
+127.0.0.1 - - [16/Feb/2026 11:53:31] "[35m[1mGET /api/parking HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py", line 149, in get_parking
+    slots = Estacionamiento.query.all()
+            ^^^^^^^^^^^^^^^
+NameError: name 'Estacionamiento' is not defined
+127.0.0.1 - - [16/Feb/2026 11:53:31] "[35m[1mGET /api/parking HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py", line 149, in get_parking
+    slots = Estacionamiento.query.all()
+            ^^^^^^^^^^^^^^^
+NameError: name 'Estacionamiento' is not defined

@@ -176,7 +176,7 @@ const MapComponent = ({ buildings, locations, customPins, setCustomPins, route, 
 
         // Configuration for specific buttons
         if (type === 'Auditorio') exactMatchName = "Auditorio";
-        if (type === 'Gimnasio') exactMatchName = "Gimnacio de Basquetbol/Voleibol/Taekwondo";
+        if (type === 'Gimnasio') exactMatchName = "Gimnasio de Basquetbol/Voleibol/Taekwondo";
         if (type === 'Cafeteria') exactMatchName = "Cafeteria Principal";
 
         let match;

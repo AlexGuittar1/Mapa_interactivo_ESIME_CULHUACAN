@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models import db, EdificioDB, CaminoDB, Usuario, Salon, Horario, Estacionamiento, Grupo, Asignatura, Profesor, SavedPlace, ParkingSpace, ParkingReservation, ParkingHistory
-from repositorio import cargar_sistema
+from models import db, EdificioDB, CaminoDB, Alumno, SavedPlace, ParkingSpace, ParkingReservation, ParkingHistory
+# Removed obsolete imports after DB refactoring: Estacionamiento, Salon, Horario, Grupo, Asignatura, Profesor
+# from repositorio import cargar_sistema  # Commented out - module not needed
+# from navegacion import calcular_ruta_usuario  # Commented out - module doesn't exist
 
 from datetime import datetime
 import time
@@ -77,7 +79,7 @@ def check_email():
     data = request.get_json()
     email = data.get('email')
     
-    user = Usuario.query.filter_by(email=email).first()
+    user = Alumno.query.filter_by(email=email).first()
     if user:
         return jsonify({"exists": True, "user": user.to_dict()}), 200
     
@@ -91,7 +93,7 @@ def complete_profile():
     nombre = data.get('nombre') # Desde Outlook o Input
     
     # Validar si boleta ya existe
-    if Usuario.query.filter_by(boleta=boleta).first():
+    if Alumno.query.filter_by(boleta=boleta).first():
         return jsonify({"error": "La boleta ya está registrada"}), 400
 
     # Assign random group for demo if not provided
@@ -114,7 +116,7 @@ def complete_profile():
 @app.route("/auth/register", methods=["POST"])
 def register():
     data = request.get_json()
-    if Usuario.query.filter_by(boleta=data.get('boleta')).first():
+    if Alumno.query.filter_by(boleta=data.get('boleta')).first():
         return jsonify({"error": "Usuario ya existe"}), 400
     
     grupo = Grupo.query.order_by(db.func.random()).first()
@@ -135,7 +137,7 @@ def login():
     data = request.get_json()
     boleta = data.get('boleta')
     # Simple login check (sin contraseña real por demo)
-    user = Usuario.query.filter_by(boleta=boleta).first()
+    user = Alumno.query.filter_by(boleta=boleta).first()
     if user:
         return jsonify(user.to_dict()), 200
     return jsonify({"error": "Usuario no encontrado"}), 404
@@ -306,7 +308,7 @@ def obtener_ruta():
         lon = float(data["lon"])
         
         boleta = data.get("boleta")
-        user = Usuario.query.filter_by(boleta=boleta).first()
+        user = Alumno.query.filter_by(boleta=boleta).first()
         if user and user.id_grupo:
             dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"]
             dia_hoy = dias[datetime.now().weekday()]

@@ -42,20 +42,6 @@
     "type": "static"
   },
   {
-    "id": 8,
-    "name": "Entrada a Gimnacio de Basquetbol/Voleibol/Taekwondo",
-    "lat": 19.330709124894057,
-    "lon": -99.1120406985283,
-    "type": "static"
-  },
-  {
-    "id": 9,
-    "name": "Gimnacio de Basquetbol/Voleibol/Taekwondo",
-    "lat": 19.330696469914013,
-    "lon": -99.11176711320878,
-    "type": "static"
-  },
-  {
     "id": 1010,
     "name": "Estacionamiento Sección 1",
     "lat": 19.3304003431011,
@@ -344,14 +330,14 @@
   },
   {
     "id": 52,
-    "name": "Entrada a Gimnacio de Basquetbol/Voleibol/Taekwondo",
+    "name": "Entrada a Gimnasio de Basquetbol/Voleibol/Taekwondo",
     "lat": 19.330711655889946,
     "lon": -99.11205142736436,
     "type": "static"
   },
   {
     "id": 53,
-    "name": "Gimnacio de Basquetbol/Voleibol/Taekwondo",
+    "name": "Gimnasio de Basquetbol/Voleibol/Taekwondo",
     "lat": 19.33075215181887,
     "lon": -99.11175370216371,
     "type": "static"

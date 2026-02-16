@@ -83,7 +83,7 @@ def reserve_parking():
             return jsonify({"error": f"Espacio no disponible (estado: {space.status})"}), 400
         
         # Verificar que el usuario existe
-        user = Usuario.query.filter_by(boleta=user_boleta).first()
+        user = Alumno.query.filter_by(boleta=user_boleta).first()
         if not user:
             return jsonify({"error": "Usuario no encontrado"}), 404
         
