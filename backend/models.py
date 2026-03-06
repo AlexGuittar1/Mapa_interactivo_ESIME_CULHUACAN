@@ -39,7 +39,12 @@ class Alumno(db.Model):
     nombre = db.Column(db.String(100), nullable=False)
     carrera = db.Column(db.String(100))
     vehiculo = db.Column(db.String(20))
-    id_grupo = db.Column(db.Integer, db.ForeignKey('grupos.id_grupo'))
+    id_grupo = db.Column(db.Integer, db.ForeignKey('grupos.id'))
+    # --- Campos de integración institucional ---
+    institutional_id = db.Column(db.String(100), unique=True, nullable=True)
+    auth_provider = db.Column(db.String(20), default='local')
+    last_login = db.Column(db.DateTime, nullable=True)
+    is_synced = db.Column(db.Boolean, default=False)
 
     # Relaciones
     inscripciones = db.relationship('Inscripcion', back_populates='alumno', lazy=True, cascade='all, delete-orphan')
@@ -54,7 +59,8 @@ class Alumno(db.Model):
             "email": self.email,
             "nombre": self.nombre,
             "carrera": self.carrera,
-            "vehiculo": self.vehiculo
+            "vehiculo": self.vehiculo,
+            "auth_provider": self.auth_provider,
         }
 
 class Materia(db.Model):
@@ -266,11 +272,26 @@ class SavedPlace(db.Model):
             "user_boleta": self.user_boleta
         }
 
+class ParkingSection(db.Model):
+    __tablename__ = "parking_sections"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    total_spaces = db.Column(db.Integer, nullable=False)
+    map_image_url = db.Column(db.String(255), nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "total_spaces": self.total_spaces,
+            "map_image_url": self.map_image_url
+        }
+
 class ParkingSpace(db.Model):
     __tablename__ = "parking_spaces"
     id = db.Column(db.Integer, primary_key=True)
     space_number = db.Column(db.String(10), unique=True, nullable=False)
-    section = db.Column(db.String(5), nullable=False)
+    section_id = db.Column(db.Integer, db.ForeignKey('parking_sections.id'), nullable=False)
     row_number = db.Column(db.Integer)
     position_number = db.Column(db.Integer)
     lat = db.Column(db.Float, nullable=False)
@@ -288,12 +309,14 @@ class ParkingSpace(db.Model):
 
     occupant = db.relationship('Alumno', foreign_keys=[occupied_by], back_populates='occupied_spaces')
     reserver = db.relationship('Alumno', foreign_keys=[reserved_by], back_populates='reserved_spaces')
+    section = db.relationship('ParkingSection', backref=db.backref('spaces', lazy=True))
 
     def to_dict(self):
         return {
             "id": self.id,
             "space_number": self.space_number,
-            "section": self.section,
+            "section_id": self.section_id,
+            "section_name": self.section.name if self.section else None,
             "row": self.row_number,
             "position": self.position_number,
             "lat": self.lat,
@@ -343,6 +366,8 @@ class ParkingHistory(db.Model):
     space_id = db.Column(db.Integer, db.ForeignKey('parking_spaces.id'), nullable=False)
     user_boleta = db.Column(db.String(20))
     action = db.Column(db.String(20), nullable=False)
+    previous_status = db.Column(db.String(20))
+    new_status = db.Column(db.String(20))
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
 
     space = db.relationship('ParkingSpace', backref=db.backref('history', lazy=True))
@@ -354,5 +379,7 @@ class ParkingHistory(db.Model):
             "space_number": self.space.space_number if self.space else None,
             "user_boleta": self.user_boleta,
             "action": self.action,
+            "previous_status": self.previous_status,
+            "new_status": self.new_status,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None
         }

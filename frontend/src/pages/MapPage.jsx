@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import keyPoints from '../data/key_points.json';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import MapComponent from '../components/MapComponent';
 import { getBuildings, getParking, getRoute, getWalkingRoute, getSavedPlaces } from '../services/api';
-import locations from '../locations.json';
 
 const MapPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [buildings, setBuildings] = useState(keyPoints); // Load static key points
     const [parking, setParking] = useState([]);
     const [customPins, setCustomPins] = useState([]);
@@ -16,6 +16,28 @@ const MapPage = () => {
     const [showPins, setShowPins] = useState(false);
 
     const togglePins = () => setShowPins(prev => !prev);
+
+    // Auto-ruta si venimos de una notificación
+    useEffect(() => {
+        if (location.state && location.state.room) {
+            const roomNum = parseInt(String(location.state.room).replace(/\D/g, ''), 10);
+            let targetBuilding = null;
+            if (!isNaN(roomNum) && roomNum > 0) {
+                const buildingNum = Math.floor(roomNum / 1000);
+                targetBuilding = `Edificio ${buildingNum}`;
+            }
+
+            if (targetBuilding) {
+                // Configuramos los selectores visualmente
+                setSelection({ origin: 'Tu ubicación', destination: targetBuilding });
+
+                // Disparamos el cálculo automático tras un breve retraso para asegurar montaje
+                setTimeout(() => {
+                    handleCalculateRoute('Tu ubicación', targetBuilding, null);
+                }, 800);
+            }
+        }
+    }, [location.state]);
 
     useEffect(() => {
         const userStr = localStorage.getItem('user');
@@ -111,7 +133,12 @@ const MapPage = () => {
         }
 
         // Call KML Router
-        getWalkingRoute(startCoords.lat, startCoords.lon, endCoords.lat, endCoords.lon)
+        getWalkingRoute({
+            start_lat: startCoords.lat,
+            start_lon: startCoords.lon,
+            end_lat: endCoords.lat,
+            end_lon: endCoords.lon
+        })
             .then(data => {
                 if (data.path && data.path.length > 0) {
                     setRoute(data.path); // [[lat, lon], ...]
@@ -136,7 +163,6 @@ const MapPage = () => {
             <MapComponent
                 buildings={buildings}
                 parking={parking}
-                locations={locations}
                 customPins={customPins}
                 setCustomPins={setCustomPins}
                 route={route}

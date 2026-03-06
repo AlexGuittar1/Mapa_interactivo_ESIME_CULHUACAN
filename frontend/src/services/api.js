@@ -1,122 +1,141 @@
-const API_URL = "http://127.0.0.1:5001";
-
 /**
- * Función auxiliar para realizar peticiones fetch y manejar errores.
- * @param {string} endpoint - El punto final de la API.
- * @param {object} options - Opciones de la petición fetch.
- * @param {string} errorMessage - Mensaje de error por defecto.
+ * API Service — Capa de comunicación con el backend.
+ * 
+ * Centraliza todas las llamadas HTTP al backend Flask.
+ * Compatible con modo local (boleta) y futuro modo Azure AD.
  */
-const apiRequest = async (endpoint, options = {}, errorMessage = 'Error en la petición') => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-        headers: { 'Content-Type': 'application/json' },
-        ...options,
-    });
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorMessage);
+const API_BASE = "http://localhost:5001";
+
+// --- Helpers ---
+
+async function handleResponse(res) {
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
     }
+    return data;
+}
 
-    return response.json();
-};
+function headers(extra = {}) {
+    return {
+        "Content-Type": "application/json",
+        ...extra,
+    };
+}
 
-// Iniciar sesión con el número de boleta
-export const login = (boleta) =>
-    apiRequest('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ boleta })
-    }, 'Error al iniciar sesión');
+// --- Auth ---
 
-// Obtener el horario del usuario mediante su boleta
-export const getSchedule = (boleta) =>
-    apiRequest(`/api/user/${boleta}/schedule`, {}, 'Error al obtener el horario');
-
-// Verificar si un correo electrónico ya está registrado
-export const checkEmail = (email) =>
-    apiRequest('/auth/check-email', {
-        method: 'POST',
-        body: JSON.stringify({ email })
+export async function login(boleta) {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ boleta }),
     });
+    return handleResponse(res);
+}
 
-// Completar el registro del perfil del usuario
-export const completeProfile = (userData) =>
-    apiRequest('/auth/complete-profile', {
-        method: 'POST',
-        body: JSON.stringify(userData)
-    }, 'Error al completar el perfil');
+export async function checkEmail(email) {
+    const res = await fetch(`${API_BASE}/auth/check-email`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ email }),
+    });
+    return handleResponse(res);
+}
 
-// Registrar nuevo usuario manualmente
-export const register = (userData) =>
-    apiRequest('/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(userData)
-    }, 'Error al registrar usuario');
+export async function completeProfile(data) {
+    const res = await fetch(`${API_BASE}/auth/complete-profile`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+}
 
-// Obtener el listado de edificios
-export const getBuildings = () =>
-    apiRequest('/api/buildings', {}, 'Error al obtener edificios');
+export async function register(data) {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+}
 
-// Obtener información de los estacionamientos
-export const getParking = () =>
-    apiRequest('/api/parking', {}, 'Error al obtener estacionamientos');
+// --- User ---
 
-// Obtener una ruta basada en el origen y destino
-export const getRoute = (origin, dest) =>
-    apiRequest('/ruta', {
-        method: 'POST',
-        body: JSON.stringify(origin)
-    }, 'Error al obtener la ruta');
+export async function updateUser(boleta, data) {
+    const res = await fetch(`${API_BASE}/api/user/${boleta}`, {
+        method: "PUT",
+        headers: headers(),
+        body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+}
 
-export const getWalkingRoute = (startLat, startLon, endLat, endLon) =>
-    apiRequest('/api/route', {
-        method: 'POST',
-        body: JSON.stringify({
-            start_lat: startLat,
-            start_lon: startLon,
-            end_lat: endLat,
-            end_lon: endLon
-        })
-    }, 'Error calculating route');
+export async function getSchedule(boleta) {
+    const res = await fetch(`${API_BASE}/api/user/${boleta}/schedule`);
+    return handleResponse(res);
+}
 
+// --- Map Data ---
 
-// Guardar ubicaciones personalizadas
-export const saveLocations = (locations) =>
-    apiRequest('/api/locations', {
-        method: 'POST',
-        body: JSON.stringify(locations)
-    }, 'Error al guardar ubicaciones');
+export async function getBuildings() {
+    const res = await fetch(`${API_BASE}/api/buildings`);
+    return handleResponse(res);
+}
 
-// Guardar configuración del mapa (bounds, rotation, etc)
-export const saveMapConfig = (config) =>
-    apiRequest('/api/map-config', {
-        method: 'POST',
-        body: JSON.stringify(config)
-    }, 'Error al guardar configuración del mapa');
+export async function getParking() {
+    const res = await fetch(`${API_BASE}/api/parking`);
+    return handleResponse(res);
+}
 
-// Actualizar datos del usuario (ej. vehículo)
-export const updateUser = (boleta, userData) =>
-    apiRequest(`/api/user/${boleta}`, {
-        method: 'PUT',
-        body: JSON.stringify(userData)
-    }, 'Error al actualizar usuario');
+export async function getRoute(data) {
+    const res = await fetch(`${API_BASE}/api/ruta`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+}
 
-// --- Saved Places API ---
-export const getSavedPlaces = (boleta) =>
-    apiRequest(`/api/saved-places?user_boleta=${boleta}`, {}, 'Error loading saved places');
+export async function getWalkingRoute(data) {
+    const res = await fetch(`${API_BASE}/api/route`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+}
 
-export const savePlace = (data) =>
-    apiRequest('/api/saved-places', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    }, 'Error saving place');
+// --- Saved Places ---
 
-export const deletePlace = (id) =>
-    apiRequest(`/api/saved-places/${id}`, {
-        method: 'DELETE'
-    }, 'Error deleting place');
+export async function getSavedPlaces(boleta) {
+    const res = await fetch(`${API_BASE}/api/saved-places?user_boleta=${boleta}`);
+    return handleResponse(res);
+}
 
-export const updatePlace = (id, data) =>
-    apiRequest(`/api/saved-places/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    }, 'Error updating place');
+export async function savePlace(data) {
+    const res = await fetch(`${API_BASE}/api/saved-places`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+}
+
+export async function deletePlace(id) {
+    const res = await fetch(`${API_BASE}/api/saved-places/${id}`, {
+        method: "DELETE",
+    });
+    return handleResponse(res);
+}
+
+export async function updatePlace(id, data) {
+    const res = await fetch(`${API_BASE}/api/saved-places/${id}`, {
+        method: "PUT",
+        headers: headers(),
+        body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+}

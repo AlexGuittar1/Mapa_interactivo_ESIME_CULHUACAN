@@ -278,13 +278,32 @@ class KMLRouter:
             min_dist = float('inf')
             best_edge = None
             
-            for u, v, data in self.graph.edges(data=True):
-                proj = project_point(target_point, u, v)
-                dist = haversine_distance(target_point, proj)
+            # Snap to nodes first
+            for node in self.graph.nodes:
+                dist = haversine_distance(target_point, node)
                 if dist < min_dist:
                     min_dist = dist
+                    best_point = node
+                    # Find any edge connected to this node
+                    neighbors = list(self.graph.neighbors(node))
+                    if neighbors:
+                        best_edge = (node, neighbors[0])
+            
+            # Also check orthogonal projections onto edges, but add a slight penalty 
+            # so we prefer snapping to actual nodes/intersections if they are roughly the same distance
+            for u, v, data in self.graph.edges(data=True):
+                proj = project_point(target_point, u, v)
+                dist_to_proj = haversine_distance(target_point, proj)
+                
+                # Penalty: projecting mid-segment is slightly less desirable than hitting an intersection node
+                # unless it's genuinely much closer.
+                penalized_dist = dist_to_proj * 1.1 
+                
+                if penalized_dist < min_dist:
+                    min_dist = penalized_dist
                     best_point = proj
                     best_edge = (u, v)
+                    
             return best_point, best_edge
 
         # OPTIMIZATION: Work directly on original graph, track temporary nodes

@@ -294,13 +294,6 @@
     "type": "static"
   },
   {
-    "id": 47,
-    "name": "Estacionamiento sección 3",
-    "lat": 19.329524614513005,
-    "lon": -99.11256372928621,
-    "type": "static"
-  },
-  {
     "id": 48,
     "name": "Cancha Basquetbol 1",
     "lat": 19.331584847131296,
@@ -319,13 +312,6 @@
     "name": "Cancha de Futbol 2",
     "lat": 19.331114083737653,
     "lon": -99.1116625070572,
-    "type": "static"
-  },
-  {
-    "id": 51,
-    "name": "Entrada a Canchas",
-    "lat": 19.33078505475371,
-    "lon": -99.11215603351593,
     "type": "static"
   },
   {

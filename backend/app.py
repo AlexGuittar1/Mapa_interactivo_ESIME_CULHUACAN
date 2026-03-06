@@ -1,52 +1,60 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models import db, EdificioDB, CaminoDB, Alumno, SavedPlace, ParkingSpace, ParkingReservation, ParkingHistory
-# Removed obsolete imports after DB refactoring: Estacionamiento, Salon, Horario, Grupo, Asignatura, Profesor
-# from repositorio import cargar_sistema  # Commented out - module not needed
-# from navegacion import calcular_ruta_usuario  # Commented out - module doesn't exist
+from models import db, EdificioDB, CaminoDB, Alumno, Grupo, Horario, Inscripcion, MateriaGrupo, SavedPlace, ParkingSpace, ParkingReservation, ParkingHistory, ParkingSection
+from config import get_config
+from repositories import create_user_repository, create_schedule_repository
+from services.auth_service import AuthService
+from services.schedule_service import ScheduleService
 
 from datetime import datetime
 import time
 import random
 
+# --- App & Config ---
+config = get_config()
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
 
-# Configuración de la base de datos
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///campus.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_DATABASE_URI"] = config.SQLALCHEMY_DATABASE_URI
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = config.SQLALCHEMY_TRACK_MODIFICATIONS
+app.config["SECRET_KEY"] = config.SECRET_KEY
 
 db.init_app(app)
 
 from kml_router import KMLRouter
 import os
 
-# ... (imports)
+# --- Services (inicializados después de app context) ---
+user_repo = None
+schedule_repo = None
+auth_service = None
+schedule_service = None
 
 # Variables globales para sistema de navegación
 grafo = None
 kml_router = None
 
-# Inicializar sistema (AVL + Grafo + KML Router)
+# Inicializar sistema
 def init_system():
-    global grafo, kml_router
+    global grafo, kml_router, user_repo, schedule_repo, auth_service, schedule_service
     with app.app_context():
-        db.create_all() 
-        try:
-            # Init old graph if needed (keeping for backward compatibility or different features)
-            if EdificioDB.query.first():
-                grafo = cargar_sistema()
-        except:
-            pass
-            
+        db.create_all()
+
+        # Inicializar repositorios y servicios
+        user_repo = create_user_repository(config)
+        schedule_repo = create_schedule_repository(config)
+        auth_service = AuthService(user_repo, getattr(config, 'AUTH_PROVIDER', 'local'))
+        schedule_service = ScheduleService(schedule_repo, user_repo)
+        print(f"[CONFIG] Entorno: {config.ENV_NAME} | Auth: {getattr(config, 'AUTH_PROVIDER', 'local')} | Data: {config.DATA_PROVIDER}")
+
         # Init KML Router
         try:
             base_dir = os.path.dirname(os.path.abspath(__file__))
             kml_path = os.path.join(base_dir, "..", "Camino ESIME caminable.kml")
             kml_router = KMLRouter(kml_path)
-            print(f"KML Graph loaded with {len(kml_router.graph.nodes)} nodes")
+            print(f"[KML] Graph loaded with {len(kml_router.graph.nodes)} nodes")
         except Exception as e:
-            print(f"Error loading KML: {e}")
+            print(f"[KML] Error loading: {e}")
 
 init_system()
 
@@ -78,98 +86,84 @@ def get_route():
 def check_email():
     data = request.get_json()
     email = data.get('email')
-    
-    user = Alumno.query.filter_by(email=email).first()
-    if user:
-        return jsonify({"exists": True, "user": user.to_dict()}), 200
-    
+    user, exists = auth_service.check_email(email)
+    if exists:
+        return jsonify({"exists": True, "user": user}), 200
     return jsonify({"exists": False}), 200
 
 @app.route("/auth/complete-profile", methods=["POST"])
 def complete_profile():
     data = request.get_json()
-    email = data.get('email')
-    boleta = data.get('boleta')
-    nombre = data.get('nombre') # Desde Outlook o Input
-    
-    # Validar si boleta ya existe
-    if Alumno.query.filter_by(boleta=boleta).first():
-        return jsonify({"error": "La boleta ya está registrada"}), 400
-
     # Assign random group for demo if not provided
-    # In a real app, user would select it or it comes from external system
     grupo = Grupo.query.order_by(db.func.random()).first()
-    
-    nuevo_usuario = Usuario(
-        boleta=boleta, 
-        nombre=nombre, 
-        email=email,
-        carrera=data.get('carrera', 'Ingeniería'),
-        vehiculo=data.get('vehiculo', 'ninguno'),
-        id_grupo=grupo.id_grupo if grupo else None
-    )
-    db.session.add(nuevo_usuario)
-    db.session.commit()
-    
-    return jsonify(nuevo_usuario.to_dict()), 201
+    create_data = {
+        'boleta': data.get('boleta'),
+        'nombre': data.get('nombre'),
+        'email': data.get('email'),
+        'carrera': data.get('carrera', 'Ingeniería'),
+        'vehiculo': data.get('vehiculo', 'ninguno'),
+        'id_grupo': grupo.id if grupo else None,
+    }
+    user, error = auth_service.complete_profile(create_data)
+    if error:
+        return jsonify({"error": error}), 400
+    return jsonify(user), 201
 
 @app.route("/auth/register", methods=["POST"])
 def register():
     data = request.get_json()
-    if Alumno.query.filter_by(boleta=data.get('boleta')).first():
-        return jsonify({"error": "Usuario ya existe"}), 400
-    
     grupo = Grupo.query.order_by(db.func.random()).first()
-
-    nuevo_usuario = Usuario(
-        boleta=data['boleta'], 
-        nombre=data['nombre'], 
-        carrera=data.get('carrera'),
-        vehiculo=data.get('vehiculo', 'ninguno'),
-        id_grupo=grupo.id_grupo if grupo else None
-    )
-    db.session.add(nuevo_usuario)
-    db.session.commit()
-    return jsonify(nuevo_usuario.to_dict()), 201
+    create_data = {
+        'boleta': data.get('boleta'),
+        'nombre': data.get('nombre'),
+        'carrera': data.get('carrera'),
+        'vehiculo': data.get('vehiculo', 'ninguno'),
+        'id_grupo': grupo.id if grupo else None,
+    }
+    user, error = auth_service.register(create_data)
+    if error:
+        return jsonify({"error": error}), 400
+    return jsonify(user), 201
 
 @app.route("/auth/login", methods=["POST"])
 def login():
     data = request.get_json()
-    boleta = data.get('boleta')
-    # Simple login check (sin contraseña real por demo)
-    user = Alumno.query.filter_by(boleta=boleta).first()
-    if user:
-        return jsonify(user.to_dict()), 200
-    return jsonify({"error": "Usuario no encontrado"}), 404
+    user, error = auth_service.login(data)
+    if error:
+        return jsonify({"error": error}), 404
+    return jsonify(user), 200
+
+# Endpoint preparado para login con Azure AD (futuro)
+@app.route("/auth/azure-login", methods=["POST"])
+def azure_login():
+    """Login vía Azure AD. Requiere configuración institucional.
+    
+    Headers: Authorization: Bearer {id_token_de_azure}
+    """
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({"error": "Se requiere token Bearer de Azure AD"}), 401
+    
+    token = auth_header.split(' ', 1)[1]
+    user, error = auth_service.login({'azure_token': token})
+    if error:
+        return jsonify({"error": error}), 401
+    return jsonify(user), 200
 
 # ENDPOINTS
 
 @app.route("/api/parking", methods=["GET"])
 def get_parking():
-    slots = Estacionamiento.query.all()
-    return jsonify([s.to_dict() for s in slots]), 200
+    # Usar ParkingSpace (modelo actualizado, no Estacionamiento que fue eliminado)
+    spaces = ParkingSpace.query.all()
+    return jsonify([s.to_dict() for s in spaces]), 200
 
 @app.route("/api/user/<boleta>/schedule", methods=["GET"])
 def get_schedule(boleta):
-    user = Usuario.query.filter_by(boleta=boleta).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-    
-    # Obtener día actual y mapear a nombres completos (Lunes, Martes, etc.)
-    dias_dict = {
-        0: "Lunes", 1: "Martes", 2: "Miércoles", 
-        3: "Jueves", 4: "Viernes", 5: "Sábado", 6: "Domingo"
-    }
-    dia_actual = dias_dict[datetime.now().weekday()]
-    
-    if user.id_grupo:
-        # Filter by day
-        clases = Horario.query.filter_by(id_grupo=user.id_grupo, dia=dia_actual).all()
-        clases.sort(key=lambda x: x.hora_inicio)
-    else:
-        clases = []
-
-    return jsonify([c.to_dict() for c in clases]), 200
+    horarios, error = schedule_service.get_today_schedule(boleta)
+    if error:
+        return jsonify({"error": error}), 404
+    return jsonify(horarios), 200
 
 @app.route("/api/buildings", methods=["GET"])
 def get_buildings():
@@ -178,22 +172,11 @@ def get_buildings():
 
 @app.route("/api/user/<boleta>", methods=["PUT"])
 def update_user(boleta):
-    user = Usuario.query.filter_by(boleta=boleta).first()
-    if not user:
-        return jsonify({"error": "Usuario no encontrado"}), 404
-    
     data = request.get_json()
-    if 'vehiculo' in data:
-        user.vehiculo = data['vehiculo']
-    
-    if 'nombre' in data:
-        user.nombre = data['nombre']
-    
-    if 'carrera' in data:
-        user.carrera = data['carrera']
-
-    db.session.commit()
-    return jsonify(user.to_dict()), 200
+    user, error = auth_service.update_user(boleta, data)
+    if error:
+        return jsonify({"error": error}), 404
+    return jsonify(user), 200
 
 @app.route("/api/saved-places", methods=["GET", "POST"])
 def manage_saved_places():
@@ -309,22 +292,24 @@ def obtener_ruta():
         
         boleta = data.get("boleta")
         user = Alumno.query.filter_by(boleta=boleta).first()
-        if user and user.id_grupo:
-            dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"]
+        if user:
+            # Usar schedule_service para obtener clases del día
+            dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
             dia_hoy = dias[datetime.now().weekday()]
             hora_ahora = datetime.now().strftime("%H:%M")
-            clases = Horario.query.filter_by(id_grupo=user.id_grupo, dia=dia_hoy).all()
-            clases.sort(key=lambda x: x.hora_inicio)
+            horarios, _ = schedule_service.get_today_schedule(boleta)
             
-            for c in clases:
-                if c.hora_fin > hora_ahora:
-                    salon_name = c.salon.nombre if c.salon else ""
-                    if salon_name.startswith("1"): destino_nombre = "Edificio 1"
-                    elif salon_name.startswith("2"): destino_nombre = "Edificio 2"
-                    elif salon_name.startswith("3"): destino_nombre = "Edificio 3"
-                    else: destino_nombre = "Explanada ESIME"
-                    info_extra = f"Clase: {c.asignatura.nombre} en {salon_name}"
-                    break
+            if horarios:
+                # Filtrar por clases que aún no terminan
+                for h in horarios:
+                    if h.get('hora_fin', '') > hora_ahora:
+                        salon_name = h.get('salon', '') or ''
+                        if salon_name.startswith("1"): destino_nombre = "Edificio 1"
+                        elif salon_name.startswith("2"): destino_nombre = "Edificio 2"
+                        elif salon_name.startswith("3"): destino_nombre = "Edificio 3"
+                        else: destino_nombre = "Explanada ESIME"
+                        info_extra = f"Clase: {h.get('materia', '')} en {salon_name}"
+                        break
         
         if not destino_nombre:
              return jsonify({"error": "No se encontraron clases próximas para hoy"}), 404
@@ -384,41 +369,83 @@ def crear_edificio():
 
 # ==================== PARKING ENDPOINTS ====================
 
+from datetime import datetime, timedelta
+
+def check_expired_reservations():
+    """Libera automáticamente las reservas vencidas y registra la acción 'expire' en ParkingHistory."""
+    now = datetime.now()
+    try:
+        expired_spaces = ParkingSpace.query.filter(
+            ParkingSpace.status == 'reserved',
+            ParkingSpace.reservation_expires_at != None,
+            ParkingSpace.reservation_expires_at < now
+        ).all()
+        
+        for space in expired_spaces:
+            history = ParkingHistory(
+                space_id=space.id,
+                user_boleta=space.reserved_by,
+                action='expire',
+                previous_status='reserved',
+                new_status='available',
+                timestamp=now
+            )
+            db.session.add(history)
+            
+            space.status = 'available'
+            space.reserved_by = None
+            space.reserved_at = None
+            space.reservation_expires_at = None
+            
+        if expired_spaces:
+            db.session.commit()
+    except Exception as e:
+        print(f"Error checking expirations: {e}")
+
 @app.route("/api/parking/spaces", methods=["GET"])
 def get_parking_spaces():
-    """Obtener todos los espacios de estacionamiento con filtros opcionales"""
+    """Obtener todos los espacios de estacionamiento agrupados por seccion"""
+    check_expired_reservations()
     try:
-        section = request.args.get('section')
-        status = request.args.get('status')
-        sort_by = request.args.get('sort_by', 'space_number')
+        sections = ParkingSection.query.order_by(ParkingSection.id).all()
+        spaces = ParkingSpace.query.all()
         
-        query = ParkingSpace.query
-        
-        if section:
-            query = query.filter_by(section=section.upper())
-        if status:
-            query = query.filter_by(status=status)
-        
-        if sort_by == 'space_number':
-            query = query.order_by(ParkingSpace.space_number)
-        elif sort_by.startswith('distance_to_building_'):
-            building_num = sort_by.split('_')[-1]
-            if building_num in ['1', '2', '3']:
-                query = query.order_by(getattr(ParkingSpace, f'distance_to_building_{building_num}'))
-        
-        spaces = query.all()
-        
-        total = len(spaces)
+        result_sections = []
+        for sec in sections:
+            sec_spaces = [s for s in spaces if s.section_id == sec.id]
+            
+            # Ordenamos los espacios de cada listado por su id o "space_number"
+            sec_spaces.sort(key=lambda x: x.id)
+            
+            sec_total = sec.total_spaces
+            sec_available = sum(1 for s in sec_spaces if s.status == 'available')
+            sec_occupied = sum(1 for s in sec_spaces if s.status == 'occupied')
+            sec_reserved = sum(1 for s in sec_spaces if s.status == 'reserved')
+            
+            result_sections.append({
+                "id": sec.id,
+                "name": sec.name,
+                "total_spaces": sec_total,
+                "map_image_url": sec.map_image_url,
+                "stats": {
+                    "available": sec_available,
+                    "occupied": sec_occupied,
+                    "reserved": sec_reserved
+                },
+                "spaces": [s.to_dict() for s in sec_spaces]
+            })
+            
+        total_spaces = sum(s.total_spaces for s in sections)
         available = sum(1 for s in spaces if s.status == 'available')
         occupied = sum(1 for s in spaces if s.status == 'occupied')
         reserved = sum(1 for s in spaces if s.status == 'reserved')
         
         return jsonify({
-            "total": total,
+            "total": total_spaces,
             "available": available,
             "occupied": occupied,
             "reserved": reserved,
-            "spaces": [space.to_dict() for space in spaces]
+            "sections": result_sections
         }), 200
         
     except Exception as e:
@@ -427,6 +454,7 @@ def get_parking_spaces():
 @app.route("/api/parking/spaces/<int:space_id>", methods=["GET"])
 def get_parking_space(space_id):
     """Obtener detalles de un espacio específico"""
+    check_expired_reservations()
     try:
         space = ParkingSpace.query.get(space_id)
         if not space:
@@ -434,6 +462,106 @@ def get_parking_space(space_id):
         
         return jsonify(space.to_dict()), 200
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/parking/spaces/<int:space_id>/status", methods=["PUT"])
+def update_parking_space_status(space_id):
+    """Actualizar el estado de un espacio específico respetando las reglas de negocio"""
+    check_expired_reservations()
+    try:
+        data = request.json
+        new_status = data.get('status')
+        user_boleta = data.get('user_boleta')
+        
+        if not user_boleta:
+            return jsonify({"error": "Falta la identificación del usuario (user_boleta)"}), 400
+            
+        if new_status not in ['available', 'occupied', 'reserved']:
+            return jsonify({"error": "Estado inválido"}), 400
+
+        space = ParkingSpace.query.get(space_id)
+        if not space:
+            return jsonify({"error": "Espacio no encontrado"}), 404
+            
+        now = datetime.now()
+        previous_status = space.status
+
+        # REGLA: Reserva (reserved)
+        if new_status == 'reserved':
+            if space.status != 'available':
+                return jsonify({"error": "El espacio no está disponible"}), 400
+                
+            # Validar límite: El usuario ya tiene una reserva o un auto estacionado?
+            active_usage = ParkingSpace.query.filter(
+                ((ParkingSpace.status == 'reserved') & (ParkingSpace.reserved_by == user_boleta)) |
+                ((ParkingSpace.status == 'occupied') & (ParkingSpace.occupied_by == user_boleta))
+            ).first()
+            if active_usage:
+                text = "reserva activa" if active_usage.status == 'reserved' else "coche estacionado"
+                return jsonify({"error": f"Ya tienes un(a) {text} en el espacio {active_usage.space_number}"}), 403
+                
+            # Validar Cooldown: ¿Liberó este mismo espacio en la última hora?
+            one_hour_ago = now - timedelta(hours=1)
+            cooldown = ParkingHistory.query.filter(
+                ParkingHistory.space_id == space_id,
+                ParkingHistory.user_boleta == user_boleta,
+                ParkingHistory.action == 'free',
+                ParkingHistory.timestamp >= one_hour_ago
+            ).first()
+            if cooldown:
+                return jsonify({"error": "Por políticas anti-monopolio, debes esperar 1 hora para reservar este mismo lugar nuevamente."}), 403
+                
+            space.status = 'reserved'
+            space.reserved_by = user_boleta
+            space.reserved_at = now
+            space.reservation_expires_at = now + timedelta(minutes=10)
+            
+            history = ParkingHistory(space_id=space.id, user_boleta=user_boleta, action='reserve', previous_status=previous_status, new_status=new_status, timestamp=now)
+            db.session.add(history)
+
+        # REGLA: Ocupación (occupied)
+        elif new_status == 'occupied':
+            if space.status == 'occupied':
+                return jsonify({"error": "El espacio ya está ocupado"}), 400
+            if space.status == 'reserved' and space.reserved_by != user_boleta:
+                return jsonify({"error": "El espacio está reservado por alguien más."}), 403
+                
+            # Si pasa de directly disponible o de su propia reserva
+            space.status = 'occupied'
+            space.occupied_by = user_boleta
+            space.occupied_at = now
+            space.reserved_by = None
+            space.reserved_at = None
+            space.reservation_expires_at = None
+            
+            history = ParkingHistory(space_id=space.id, user_boleta=user_boleta, action='occupy', previous_status=previous_status, new_status=new_status, timestamp=now)
+            db.session.add(history)
+
+        # REGLA: Liberación (available)
+        elif new_status == 'available':
+            if space.status == 'available':
+                return jsonify({"error": "El espacio ya está libre"}), 400
+            
+            # Quien libera debe ser el ocupante o el que reservó
+            if space.status == 'occupied' and space.occupied_by != user_boleta:
+                return jsonify({"error": "No puedes liberar un espacio ajeno"}), 403
+            if space.status == 'reserved' and space.reserved_by != user_boleta:
+                return jsonify({"error": "No puedes liberar la reserva de alguien más"}), 403
+            
+            space.status = 'available'
+            space.occupied_by = None
+            space.occupied_at = None
+            space.reserved_by = None
+            space.reserved_at = None
+            space.reservation_expires_at = None
+            
+            history = ParkingHistory(space_id=space.id, user_boleta=user_boleta, action='free', previous_status=previous_status, new_status=new_status, timestamp=now)
+            db.session.add(history)
+        
+        db.session.commit()
+        return jsonify(space.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/parking/stats", methods=["GET"])
@@ -446,13 +574,15 @@ def get_parking_stats():
         reserved = ParkingSpace.query.filter_by(status='reserved').count()
         
         sections = {}
-        for section in ['A', 'B', 'C']:
-            section_total = ParkingSpace.query.filter_by(section=section).count()
-            section_available = ParkingSpace.query.filter_by(section=section, status='available').count()
-            section_occupied = ParkingSpace.query.filter_by(section=section, status='occupied').count()
-            section_reserved = ParkingSpace.query.filter_by(section=section, status='reserved').count()
+        all_sections = ParkingSection.query.all()
+        for sec in all_sections:
+            section_name = sec.name
+            section_total = sec.total_spaces
+            section_available = ParkingSpace.query.filter_by(section_id=sec.id, status='available').count()
+            section_occupied = ParkingSpace.query.filter_by(section_id=sec.id, status='occupied').count()
+            section_reserved = ParkingSpace.query.filter_by(section_id=sec.id, status='reserved').count()
             
-            sections[section] = {
+            sections[section_name] = {
                 "total": section_total,
                 "available": section_available,
                 "occupied": section_occupied,

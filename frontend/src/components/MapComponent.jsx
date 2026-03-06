@@ -44,6 +44,14 @@ const userLocationIcon = new L.DivIcon({
     iconAnchor: [7, 7]
 });
 
+const CarIcon = L.icon({
+    iconUrl: '/icons/car-marker.png',
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -36],
+    className: 'drop-shadow-lg'
+});
+
 // Componente que muestra la ubicacion del usuario
 const LocationMarker = ({ onLocationUpdate }) => {
     const [position, setPosition] = useState(null);
@@ -92,10 +100,23 @@ const MapController = ({ targetLocation }) => {
 };
 
 // Componente principal del mapa
-const MapComponent = ({ buildings, locations, customPins, setCustomPins, route, setRoute, navInfo, onSelectPoint, onCalculateRoute, selection, showPins, togglePins }) => {
+const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, navInfo, onSelectPoint, onCalculateRoute, selection, showPins, togglePins }) => {
     const navigate = useNavigate();
     const [userPos, setUserPos] = useState(null);
     const [activeTab, setActiveTab] = useState('explorar');
+    const [parkedCar, setParkedCar] = useState(null);
+
+    // Cargar lugar de estacionamiento del GPS
+    useEffect(() => {
+        const savedCar = localStorage.getItem("mi_coche_gps");
+        if (savedCar) {
+            try {
+                setParkedCar(JSON.parse(savedCar));
+            } catch (e) {
+                console.error("Error al cargar coche GPS:", e);
+            }
+        }
+    }, []);
 
     // Estado del modo de navegacion
     const [isNavigating, setIsNavigating] = useState(false);
@@ -136,7 +157,13 @@ const MapComponent = ({ buildings, locations, customPins, setCustomPins, route, 
             .filter(p => p.name.toLowerCase().includes(lowerQuery))
             .map(p => ({ ...p, type: 'custom', id: `cust-${p.id}` }));
 
-        setSearchResults([...buildingMatches, ...customMatches]);
+        // Include parked car if it matches
+        let parkedMatch = [];
+        if (parkedCar && parkedCar.name.toLowerCase().includes(lowerQuery)) {
+            parkedMatch = [{ ...parkedCar, type: 'car', id: `car-${parkedCar.spaceId || 'sys'}` }];
+        }
+
+        setSearchResults([...buildingMatches, ...customMatches, ...parkedMatch]);
         setShowSuggestions(true);
     };
 
@@ -162,7 +189,7 @@ const MapComponent = ({ buildings, locations, customPins, setCustomPins, route, 
 
     // Estado para ocultar pines del sistema (Eliminados por usuario)
     const [hiddenPinIds, setHiddenPinIds] = useState(() => {
-        const saved = localStorage.getItem('hidden_sys_pins');
+        const saved = localStorage.getItem('hidden_sys_pins_v2'); // V2 resets old caches
         return saved ? JSON.parse(saved) : [];
     });
 
@@ -178,6 +205,7 @@ const MapComponent = ({ buildings, locations, customPins, setCustomPins, route, 
         if (type === 'Auditorio') exactMatchName = "Auditorio";
         if (type === 'Gimnasio') exactMatchName = "Gimnasio de Basquetbol/Voleibol/Taekwondo";
         if (type === 'Cafeteria') exactMatchName = "Cafeteria Principal";
+        if (type === 'Cancha') exactMatchName = "Cancha de Futbol Americano";
 
         let match;
         if (exactMatchName) {
@@ -190,17 +218,14 @@ const MapComponent = ({ buildings, locations, customPins, setCustomPins, route, 
             if (type === 'Gimnasio') searchTerm = 'gimnacio';
             if (type === 'Cafeteria') searchTerm = 'cafeteria';
 
-            match = buildings.find(b => (b.name || b.nombre || "").toLowerCase().includes(searchTerm)) ||
-                locations.find(l => l.name.toLowerCase().includes(searchTerm));
+            match = buildings.find(b => (b.name || b.nombre || "").toLowerCase().includes(searchTerm));
         }
 
         if (match) {
             const lat = match.lat || match.latitud;
             const lon = match.lon || match.longitud;
             // Since everything is in 'buildings' and rendered with 'b-' prefix, force 'b-'
-            // Exception: if it came from 'locations' (unlikely now), use loc-index?
-            // Safer: if match has id, assume b-{id}
-            const id = match.id ? `b-${match.id}` : `loc-${locations.indexOf(match)}`;
+            const id = `b-${match.id}`;
 
             setVisiblePinIds([id]);
             setTargetLocation([lat, lon]);
@@ -353,7 +378,7 @@ const MapComponent = ({ buildings, locations, customPins, setCustomPins, route, 
                 // Es un pin del sistema -> Ocultar logicamente
                 const newHidden = [...hiddenPinIds, id];
                 setHiddenPinIds(newHidden);
-                localStorage.setItem('hidden_sys_pins', JSON.stringify(newHidden));
+                localStorage.setItem('hidden_sys_pins_v2', JSON.stringify(newHidden));
             }
         }
     };
@@ -645,14 +670,14 @@ const MapComponent = ({ buildings, locations, customPins, setCustomPins, route, 
                     </div>
                     {/* Filter Chips */}
                     <div className="flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto pb-1">
-                        {['Cafeteria', 'Gimnasio', 'Auditorio', 'Biblioteca'].map((chip, idx) => (
+                        {['Cafeteria', 'Gimnasio', 'Auditorio', 'Biblioteca', 'Cancha'].map((chip, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => handleFilterClick(chip)}
                                 className="bg-white whitespace-nowrap px-4 py-2 rounded-full shadow-md text-xs font-bold text-gray-800 flex items-center gap-1.5 active:scale-95 transition-transform"
                             >
                                 <span className="text-gray-900 text-sm">
-                                    {chip === 'Cafeteria' && '🍴'} {chip === 'Gimnasio' && '🏋️'} {chip === 'Auditorio' && '🎭'} {chip === 'Biblioteca' && '📚'}
+                                    {chip === 'Cafeteria' && '🍴'} {chip === 'Gimnasio' && '🏋️'} {chip === 'Auditorio' && '🎭'} {chip === 'Biblioteca' && '📚'} {chip === 'Cancha' && '🏈'}
                                 </span>
                                 {chip}
                             </button>
@@ -690,10 +715,47 @@ const MapComponent = ({ buildings, locations, customPins, setCustomPins, route, 
                         .filter(b => !customPins.some(p => p.name === (b.name || b.nombre)))
                         .filter(b => !hiddenPinIds.includes(`b-${b.id}`))
                         .map((b) => renderMarker(b.name || b.nombre, b.lat, b.lon, `b-${b.id}`))}
-                    {locations
-                        .filter(l => !hiddenPinIds.includes(`loc-${locations.indexOf(l)}`)) // Using index as ID base
-                        .map((loc, idx) => renderMarker(loc.name, loc.lat, loc.lon, `loc-${idx}`))}
                     {customPins.map((pin) => renderMarker(pin.name, pin.lat, pin.lon, `cust-${pin.id}`, true))}
+
+                    {/* Parked Car Marker */}
+                    {parkedCar && (
+                        <Marker position={[parkedCar.lat, parkedCar.lng]} icon={CarIcon} ref={(el) => { if (el) markerRefs.current[`car-${parkedCar.spaceId || 'sys'}`] = el; }}>
+                            <Popup className="custom-popup rounded-2xl overflow-hidden border-0 shadow-2xl pb-1" closeButton={false}>
+                                <div className="p-4 bg-white min-w-[200px] flex flex-col gap-2 relative">
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-amber-400"></div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <div className="p-1.5 bg-amber-100 rounded-lg text-amber-600">
+                                            <Car size={18} strokeWidth={2.5} />
+                                        </div>
+                                        <h3 className="font-black text-gray-900 text-[16px] leading-tight m-0 tracking-tight">
+                                            Mi Coche
+                                        </h3>
+                                    </div>
+                                    <p className="text-xs text-gray-500 font-medium m-0 flex-1 leading-snug">
+                                        Ubicación de tu auto estacionado.
+                                    </p>
+                                    <div className="mt-2 flex gap-2 w-full pt-1 border-t border-gray-100">
+                                        <button
+                                            onClick={() => handlePinSelectForNav(parkedCar.name)}
+                                            className="flex-1 bg-[#10b981] text-white text-xs py-2 px-3 rounded-xl font-bold transition-transform hover:scale-105"
+                                        >
+                                            Ir hacia aquí
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setNavOrigin(parkedCar.name);
+                                                setIsNavigating(true);
+                                                // Ideally open the nav UI with this as origin
+                                            }}
+                                            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs py-2 px-3 rounded-xl transition-colors font-semibold"
+                                        >
+                                            Desde aquí
+                                        </button>
+                                    </div>
+                                </div>
+                            </Popup>
+                        </Marker>
+                    )}
 
                     {route && route.length > 0 && (
                         <Polyline positions={route} color="#3b82f6" weight={7} opacity={0.9} />
