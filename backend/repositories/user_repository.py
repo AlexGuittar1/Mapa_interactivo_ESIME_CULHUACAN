@@ -1,60 +1,76 @@
+"""
+ARCHIVO: repositories/user_repository.py
+
+INTERFACES DE REPOSITORIOS
+
+Contiene las clases abstractas para los repositorios primarios de
+la aplicación. Define los protocolos y arquitecturas que debe cumplir
+una interfazar conectora en el patrón repositorio.
+"""
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any
 
 
 class UserRepository(ABC):
-    """Interfaz abstracta para acceso a datos de usuarios.
+    """
+    INTERFAZ DE REPOSITORIO DE USUARIO
+    
+    Interfaz abstracta protectora para regular el acceso a datos.
 
-    Permite intercambiar la fuente de datos (SQLite, SQL Server,
-    PostgreSQL, MongoDB, API REST institucional) sin modificar
-    la lógica de la aplicación.
+    Permite intercambiar subyacentemente la fuente de conexión real
+    (SQLite local, SQL Server alojado, PostgreSQL, MongoDB, API REST externa)
+    sin modificar nunca la lógica central de la aplicación cliente.
 
-    Para integrar un nuevo proveedor de datos, solo hay que:
-    1. Crear una clase que herede de UserRepository
-    2. Implementar todos los métodos abstractos
-    3. Registrarla en repositories/__init__.py
+    Para integrar nuevos puentes de datos, únicamente precisa:
+    1. Instaurar una clase que herede desde este contrato UserRepository.
+    2. Sobrecargar de funcionalidad todos los métodos listados como abstractmethod.
+    3. Registrar formalmente la exportación a través de repositories/__init__.py.
     """
 
     @abstractmethod
     def find_by_boleta(self, boleta: str) -> Optional[Dict[str, Any]]:
-        """Buscar alumno por número de boleta."""
+        """Buscar métrica enlazando al número clave unívoco o boleta."""
         pass
 
     @abstractmethod
     def find_by_email(self, email: str) -> Optional[Dict[str, Any]]:
-        """Buscar alumno por correo electrónico."""
+        """Enlazar y descubrir información del perfil con un correo verificado."""
         pass
 
     @abstractmethod
     def find_by_institutional_id(self, inst_id: str) -> Optional[Dict[str, Any]]:
-        """Buscar alumno por ID institucional (Azure Object ID, etc)."""
+        """Buscar alumno operando la cadena remota ID Institucional (Azure Object ID u oAuth)."""
         pass
 
     @abstractmethod
     def create(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Crear nuevo registro de alumno. Retorna el dict del alumno creado."""
+        """Inyectar instancia persistente del registro Alumno retornando diccionario de valores instanciados."""
         pass
 
     @abstractmethod
     def update(self, boleta: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Actualizar datos del alumno. Retorna None si no existe."""
+        """Sustituir información contenida en el diccionario activo. Falla o claudica al no hallarlo."""
         pass
 
     @abstractmethod
     def exists_by_boleta(self, boleta: str) -> bool:
-        """Verificar si existe un alumno con la boleta dada."""
+        """Afirmar positivamente si consta evidencia de un alumno cobijado en esta misma boleta."""
         pass
 
 
 class ScheduleRepository(ABC):
-    """Interfaz abstracta para acceso a datos de horarios."""
+    """
+    INTERFAZ DE REPOSITORIO DE HORARIOS
+    
+    Plantilla abstracta regulando cómo exponer o iterar bloques temporales semánticos.
+    """
 
     @abstractmethod
     def get_schedule_by_boleta(self, boleta: str, dia: Optional[str] = None) -> List[Dict]:
-        """Obtener horario del alumno, opcionalmente filtrado por día."""
+        """Obtener horario desglosado cruzado contra registros formales de inscripción, filtrable opcionalmente por un día particular."""
         pass
 
     @abstractmethod
     def get_schedule_by_grupo(self, grupo_clave: str, dia: Optional[str] = None) -> List[Dict]:
-        """Obtener horario de un grupo académico."""
+        """Exportar listado masivo del cronograma general asimilado dentro de las aulas y bloques curriculares por clave (ej. 1CM10)."""
         pass

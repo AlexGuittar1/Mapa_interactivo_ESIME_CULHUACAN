@@ -1,8 +1,19 @@
+"""
+ARCHIVO: seed_inscripciones.py
+
+SCRIPT DE POBLACION DE DATOS DE PRUEBA (INSCRIPCIONES)
+
+Rellena forzosamente registros matriculares para perfiles precargados locales
+permitiendo el testeo estructural local.
+"""
 from app import app, db
 from models import Alumno, Materia, Grupo, MateriaGrupo, Inscripcion
 import sys
 
 def seed_data():
+    """
+    RUTINA DE INYECCION MATRICULAR
+    """
     with app.app_context():
         alumnos = {
             'Frias Rodriguez Adrian': Alumno.query.filter_by(nombre='Frias Rodriguez Adrian').first(),
@@ -28,7 +39,7 @@ def seed_data():
             {'clave': '3CV35', 'semestre': 3, 'turno': 'vespertino', 'carrera': 'Ingeniería en Computación'}
         ]
 
-        # Inserción de materias
+        # INSERCION Y MATRICULACION DE MATERIAS
         materias = {}
         for md in materias_data:
             m = Materia.query.filter((Materia.nombre == md['nombre']) | (Materia.nombre == 'Humanidades') | (Materia.nombre == 'Estructura de Datos')).first() # try generic match
@@ -38,13 +49,14 @@ def seed_data():
                 db.session.commit() # commit to get ID
             materias[md['nombre']] = m
 
-        # Cargar las requeridas exactamente por nombre si ya existían pero con variaciones
+        # EXTRACCION TOLERANTE POR REGEX O PARSEO APROXIMADO
+        # Cargar las requeridas exactamente por nombre asumiendo posibles variaciones menores en su inyeccion iterativa
         materias['Lenguajes de Bajo Nivel'] = Materia.query.filter(Materia.nombre.ilike('%Lenguajes de Bajo Nivel%')).first() or materias['Lenguajes de Bajo Nivel']
         materias['Ecuaciones Diferenciales'] = Materia.query.filter(Materia.nombre.ilike('%Ecuaciones Diferenciales%')).first() or materias['Ecuaciones Diferenciales']
         materias['Humanidades'] = Materia.query.filter(Materia.nombre.ilike('%Humanidades%')).first() or materias['Humanidades III']
         materias['Estructura de Datos'] = Materia.query.filter(Materia.nombre.ilike('%Estructura%Dato%')).first() or materias['Estructuras de Datos']
 
-        # Inserción de grupos
+        # CREACION DE GRUPOS DISPONIBLES
         grupos = {}
         for gd in grupos_data:
             g = Grupo.query.filter_by(clave=gd['clave']).first()
@@ -54,7 +66,7 @@ def seed_data():
                 db.session.commit()
             grupos[gd['clave']] = g
 
-        # Relacionar Materias con Grupos
+        # HOMOLOGACION DE MATERIAS CONTRA GRUPOS DISPONIBLES
         relaciones = [
             ('Lenguajes de Bajo Nivel', '3CV14'),
             ('Ecuaciones Diferenciales', '3CV31'),
@@ -74,7 +86,7 @@ def seed_data():
                 db.session.commit()
             mg_dict[f"{m_nombre}-{g_clave}"] = mg
 
-        # Inscribir Alumnos
+        # COMPROBACION E INSCRIPCION CERRADA DE ALUMNOS (PERFILES)
         for name, a in alumnos.items():
             for m_nombre, g_clave in relaciones:
                 mg = mg_dict[f"{m_nombre}-{g_clave}"]
@@ -84,7 +96,7 @@ def seed_data():
                     db.session.add(insc)
                     db.session.commit()
 
-        # Insercion de Horarios (Lunes a Viernes para que siempre aparezcan "Hoy")
+        # DISPERSION ALEATORIA E INYECCION DE HORARIOS CLASE 
         import random
         from models import Horario
         for name, mg in mg_dict.items():
@@ -108,7 +120,7 @@ def seed_data():
                     db.session.add(nuevo_h)
                     db.session.commit()
         
-        print("Done indexing DB correctly.")
+        print("\nINDEXACION Y POBLACION DE DATA FINALIZADA CON EXITO.")
 
 if __name__ == "__main__":
     seed_data()

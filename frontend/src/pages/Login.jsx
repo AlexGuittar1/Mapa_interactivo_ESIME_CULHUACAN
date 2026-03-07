@@ -8,14 +8,14 @@ const Login = () => {
     const navigate = useNavigate();
     const { instance } = useMsal();
 
-    // Estados: LOGIN, REGISTER, COMPLETE_PROFILE
+    // ESTADOS: INICIO DE SESION, REGISTRO, COMPLETAR PERFIL
     const [view, setView] = useState('LOGIN');
     const [error, setError] = useState(null);
 
-    // Login inputs
+    // CAMPOS DE ENTRADA PARA INICIO DE SESION
     const [boleta, setBoleta] = useState('');
 
-    // Register/Profile inputs
+    // CAMPOS DE ENTRADA PARA REGISTRO Y PERFIL
     const [email, setEmail] = useState('');
     const [nombre, setNombre] = useState('');
     const [regBoleta, setRegBoleta] = useState('');
@@ -30,9 +30,9 @@ const Login = () => {
                 const msName = response.account.name;
 
                 setEmail(msEmail);
-                setNombre(msName); // Pre-fill name from Outlook
+                setNombre(msName); // PRELLENAR NOMBRE DESDE OUTLOOK
 
-                // Verificar existencia
+                // VERIFICAR EXISTENCIA DE USUARIO
                 try {
                     const check = await checkEmail(msEmail);
                     if (check.exists) {
@@ -67,11 +67,11 @@ const Login = () => {
         e.preventDefault();
         setError(null);
 
-        // Use validation logic if needed
+        // UTILIZAR LOGICA DE VALIDACION SI ES NECESARIO
         const payload = {
             boleta: regBoleta,
             nombre: nombre,
-            email: email || `user_${regBoleta}@esime.mx`, // Email ficticio si es registro manual
+            email: email || `user_${regBoleta}@esime.mx`, // EMAIL FICTICIO SI ES REGISTRO MANUAL
             carrera,
             vehiculo
         };
@@ -103,7 +103,7 @@ const Login = () => {
         }
     };
 
-    // --- VISTAS ---
+    // --- VISTAS DEL COMPONENTE ---
 
     if (view === 'COMPLETE_PROFILE') {
         return (
@@ -123,7 +123,7 @@ const Login = () => {
                             <input type="text" required value={regBoleta} onChange={e => setRegBoleta(e.target.value)}
                                 className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" />
                         </div>
-                        {/* Carrera & Vehiculo Selects */}
+                        {/* SELECTORES DE CARRERA Y VEHICULO */}
                         <div>
                             <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide">Carrera</label>
                             <select value={carrera} onChange={e => setCarrera(e.target.value)} className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
@@ -161,7 +161,7 @@ const Login = () => {
                             <label className="text-xs font-bold text-gray-500 uppercase">Boleta</label>
                             <input type="text" required value={regBoleta} onChange={e => setRegBoleta(e.target.value)} className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="2024..." />
                         </div>
-                        {/* Simple Selects reusing state */}
+                        {/* SELECTORES SIMPLES REUTILIZANDO ESTADO */}
                         <div>
                             <label className="text-xs font-bold text-gray-500 uppercase">Carrera</label>
                             <select value={carrera} onChange={e => setCarrera(e.target.value)} className="w-full mt-1 px-4 py-2 border rounded-lg outline-none">
@@ -189,7 +189,7 @@ const Login = () => {
         );
     }
 
-    // Default: LOGIN
+    // POR DEFECTO: INICIO DE SESION
     return (
         <div className="flex items-center justify-center min-h-screen bg-[#F3F4F6]">
             <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200">

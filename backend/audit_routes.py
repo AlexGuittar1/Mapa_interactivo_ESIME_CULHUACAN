@@ -2,11 +2,11 @@ import sys
 import os
 import networkx as nx
 
-# Add current directory to path so we can import KMLRouter
+# AÑADIR DIRECTORIO ACTUAL A RUTA PARA IMPORTAR KMLROUTER
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from kml_router import KMLRouter
 
-# Initialize router
+# INICIALIZAR ENRUTADOR
 kml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Camino ESIME caminable.kml")
 router = KMLRouter(kml_path)
 
@@ -31,7 +31,7 @@ for origin_name, dest_name in test_cases:
     origin = pts[origin_name]
     dest = pts[dest_name]
     
-    # 1. Snap End
+    # 1. AJUSTAR EXTREMO A GRAFO
     def project_point(p, a, b):
         px, py = p
         ax, ay = a
@@ -42,7 +42,7 @@ for origin_name, dest_name in test_cases:
         t = max(0, min(1, t))
         return (ax + t * dx, ay + t * dy)
 
-    # Helper to find nearest edge point
+    # FUNCION AUXILIAR PARA ENCONTRAR EL PUNTO MAS CERCANO EN UNA ARISTA
     def get_nearest_edge_point(target_point):
         best_point = None
         min_dist = float('inf')
@@ -51,7 +51,7 @@ for origin_name, dest_name in test_cases:
         for u, v, data in router.graph.edges(data=True):
             proj = project_point(target_point, u, v)
             
-            # Local haversine inline
+            # IMPLEMENTACION LOCAL DE DISTANCIA HAVERSINE
             import math
             R = 6371000
             lat1, lon1 = math.radians(target_point[0]), math.radians(target_point[1])
@@ -75,11 +75,11 @@ for origin_name, dest_name in test_cases:
         print(f"Projection point: {proj}")
         print(f"Distance to edge: {dist:.2f}m")
 
-    # Inject projection into router graph to test exact Dijkstra path
+    # INYECTAR PROYECCION EN EL GRAFO DEL ENRUTADOR PARA PROBAR RUTA DE DIJKSTRA EXACTA
     proj, edge, _ = get_nearest_edge_point(dest)
     s_proj, s_edge, _ = get_nearest_edge_point(origin)
     
-    # Temporarily add nodes/edges to graph for pure Dijkstra
+    # AÑADIR NODOS Y ARISTAS TEMPORALMENTE AL GRAFO PARA DIJKSTRA PURO
     router.graph.add_node(origin)
     router.graph.add_node(dest)
     
@@ -91,7 +91,7 @@ for origin_name, dest_name in test_cases:
         c = 2 * math.atan2(math.sqrt(math.sin((lat2-lat1)/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin((lon2-lon1)/2)**2), math.sqrt(1 - (math.sin((lat2-lat1)/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin((lon2-lon1)/2)**2)))
         return R * c
 
-    # Assume we snap correctly (ignoring exact projection point logic to avoid edge splits, just link to nearest graph nodes directly for debug)
+    # ASUMIENDO AJUSTE CORRECTO PARA DEPURACION DIRECTA CON NODOS DEL GRAFO
     u_d, v_d = edge
     router.graph.add_edge(dest, u_d, weight=dist(dest, u_d))
     router.graph.add_edge(dest, v_d, weight=dist(dest, v_d))
@@ -114,7 +114,7 @@ for origin_name, dest_name in test_cases:
     router.graph.remove_node(origin)
     router.graph.remove_node(dest)
         
-# Let's inspect weights and connectivity
+# INSPECCION DE PESOS Y CONECTIVIDAD DEL GRAFO
 print(f"\nIs graph connected? {nx.is_connected(router.graph)}")
 if not nx.is_connected(router.graph):
         components = list(nx.connected_components(router.graph))

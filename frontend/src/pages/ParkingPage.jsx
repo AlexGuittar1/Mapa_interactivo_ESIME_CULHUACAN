@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight, CalendarClock, X } from 'lucide-react';
 import './ParkingPage.css';
 
-// SVG Component for the Car (top-down view)
+// COMPONENTE SVG PARA EL COCHE (VISTA SUPERIOR)
 const CarSvg = ({ horizontal = false }) => (
     <svg
         width="44"
@@ -42,11 +42,11 @@ const ParkingPage = () => {
 
     const API_URL = 'http://localhost:5001';
 
-    // GPS Config
+    // CONFIGURACION GPS GLOBAL
     const PARKING_CENTER = { lat: 19.329500, lng: -99.111400 };
     const MAX_RESERVATION_DISTANCE = 1500;
 
-    // GPS Config para Secciones
+    // CONFIGURACION GPS PARA SECCIONES
     const PARKING_SECTIONS_COORDS = {
         'Sección 1': { lat: 19.329415, lng: -99.111664 },
         'Sección 2': { lat: 19.329622, lng: -99.111354 },
@@ -56,7 +56,7 @@ const ParkingPage = () => {
     const OCCUPY_MAX_DISTANCE = 50;
 
     const haversineDistance = (coords1, coords2) => {
-        const R = 6371000; // Earth radius in meters
+        const R = 6371000; // RADIO DE LA TIERRA EN METROS
         const lat1 = coords1.lat * Math.PI / 180;
         const lat2 = coords2.lat * Math.PI / 180;
         const dLat = (coords2.lat - coords1.lat) * Math.PI / 180;
@@ -80,7 +80,7 @@ const ParkingPage = () => {
 
     useEffect(() => {
         fetchParkingData();
-        const interval = setInterval(fetchParkingData, 10000); // Polling every 10s
+        const interval = setInterval(fetchParkingData, 10000); // CONSULTA PERIODICA CADA 10 SEGUNDOS
         return () => clearInterval(interval);
     }, []);
 
@@ -90,7 +90,7 @@ const ParkingPage = () => {
             const data = await res.json();
             setSections(data.sections || []);
 
-            // Si es la primera carga, seleccionamos la primera sección automáticamente
+            // SI ES LA PRIMERA CARGA, SELECCIONAMOS LA PRIMERA SECCION AUTOMATICAMENTE
             if (data.sections && data.sections.length > 0) {
                 setSelectedSectionId(prev => prev === null ? data.sections[0].id : prev);
             }
@@ -102,7 +102,7 @@ const ParkingPage = () => {
         }
     };
 
-    // Verificación global de expiraciones
+    // VERIFICACION GLOBAL DE EXPIRACIONES DE RESERVA
     useEffect(() => {
         const checkExpirations = setInterval(() => {
             if (!user) return;
@@ -170,7 +170,7 @@ const ParkingPage = () => {
                     (position) => {
                         const userCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
 
-                        // Validaciones de geofences previas a API
+                        // VALIDACIONES DE GEOFENCES PREVIAS A LA LLAMADA A LA API
                         if (newStatus === 'reserved') {
                             const distance = haversineDistance(userCoords, PARKING_CENTER);
                             if (distance > MAX_RESERVATION_DISTANCE) {
@@ -197,7 +197,7 @@ const ParkingPage = () => {
                             }
                         }
 
-                        // Todo válido, ejecutar reserva u ocupación con coords
+                        // TODO VALIDO, EJECUTAR RESERVA U OCUPACION CON COORDENADAS
                         doUpdate(userCoords);
                     },
                     (error) => {
@@ -211,19 +211,19 @@ const ParkingPage = () => {
                 setIsUpdating(false);
             }
         } else {
-            // Liberar no evalúa ubicación
+            // LIBERAR NO EVALUA UBICACION
             doUpdate();
         }
     };
 
-    // Componente individual de Espacio con Timer Independiente
+    // COMPONENTE INDIVIDUAL DE ESPACIO CON TEMPORIZADOR INDEPENDIENTE
     const SpaceCard = ({ space }) => {
         const [timeLeft, setTimeLeft] = useState(null);
 
         useEffect(() => {
             if (space.status === 'reserved' && space.reservation_expires_at) {
                 const interval = setInterval(() => {
-                    // Note: Asumiendo que python manda naive datetime (ej: 2026-03-06T18:50) en zona horaria local
+                    // NOTA: ASUMIENDO QUE PYTHON MANDA FECHAS COMO NAIVE DATETIME EN ZONA HORARIA LOCAL
                     const expiresStr = space.reservation_expires_at;
                     const expires = new Date(expiresStr).getTime();
                     const now = new Date().getTime();
@@ -232,7 +232,7 @@ const ParkingPage = () => {
                     if (diff <= 0) {
                         clearInterval(interval);
                         setTimeLeft(0);
-                        // El modal de expirado se maneja en el hook global checkExpirations
+                        // EL MODAL DE EXPIRADO SE MANEJA EN EL HOOK GLOBAL DE VERIFICACION
                     } else {
                         setTimeLeft(Math.floor(diff / 1000));
                     }
@@ -241,7 +241,7 @@ const ParkingPage = () => {
             } else {
                 setTimeLeft(null);
             }
-        }, [space]); // dependencias completas no necesarias repetidamente
+        }, [space]); // LAS DEPENDENCIAS COMPLETAS NO SON NECESARIAS REPETIDAMENTE
 
         const formatTime = (seconds) => {
             if (seconds === null) return "";
@@ -252,12 +252,12 @@ const ParkingPage = () => {
 
         const isMine = space.reserved_by === user?.boleta || space.occupied_by === user?.boleta;
 
-        // Manejador del click para abrir acciones lógicas permitidas
+        // MANEJADOR DEL CLIC PARA ABRIR ACCIONES LOGICAS PERMITIDAS
         const handleClick = () => {
             if (space.status === 'available') setActionSpace(space);
             if (isMine) setActionSpace(space);
             if (space.status === 'occupied' && !isMine) {
-                // No hacer nada, clickeando carro de otro
+                // NO HACER NADA AL DAR CLIC EN EL COCHE DE OTRO USUARIO
             }
         };
 
@@ -297,7 +297,7 @@ const ParkingPage = () => {
         );
     };
 
-    // Section cycler variables
+    // VARIABLES CICLICAS DE SECCION
     const activeSection = sections.find(s => s.id === selectedSectionId) || null;
     const activeSpaces = activeSection?.spaces || [];
 
@@ -315,7 +315,7 @@ const ParkingPage = () => {
     return (
         <div className="h-screen bg-gray-50 flex flex-col font-sans overflow-hidden">
 
-            {/* --- HEADER --- */}
+            {/* --- ENCABEZADO --- */}
             <div className="pt-12 pb-6 px-6 flex flex-col items-center relative shrink-0">
                 <button
                     onClick={() => navigate('/map')}
@@ -331,16 +331,16 @@ const ParkingPage = () => {
                 </p>
             </div>
 
-            {/* --- SECTION NAVIGATOR (Enhaced & Scrollable) --- */}
+            {/* --- NAVEGADOR DE SECCIONES (MEJORADO Y DESPLAZABLE) --- */}
             <div className="px-4 sm:px-6 shrink-0 z-10 w-full mt-2 flex justify-center w-full max-w-full">
                 <div className="bg-white shadow-2xl shadow-gray-200/60 rounded-[2.5rem] p-2 sm:p-3 flex items-center w-full sm:w-fit sm:max-w-[calc(100vw-3rem)] lg:max-w-full mx-auto border border-gray-100 relative overflow-hidden">
 
-                    {/* Botón Anterior */}
+                    {/* BOTON ANTERIOR */}
                     <button onClick={handlePrevSection} className="p-2 sm:p-3 bg-gray-50 rounded-full text-gray-500 hover:text-black hover:bg-gray-100 transition-all disabled:opacity-30 shrink-0 shadow-sm" disabled={!sections.length || sections[0]?.id === selectedSectionId}>
                         <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
 
-                    {/* Contenedor con Scroll Fluido */}
+                    {/* CONTENEDOR CON DESPLAZAMIENTO FLUIDO */}
                     <div className="flex-1 overflow-x-auto no-scrollbar scroll-smooth mx-1 sm:mx-2 flex items-center gap-2 sm:gap-3 px-1 sm:px-2 min-w-0 pointer-events-auto touch-pan-x">
                         {sections.map(sec => (
                             <button
@@ -356,22 +356,22 @@ const ParkingPage = () => {
                         ))}
                     </div>
 
-                    {/* Botón Siguiente */}
+                    {/* BOTON SIGUIENTE */}
                     <button onClick={handleNextSection} className="p-2 sm:p-3 bg-gray-50 rounded-full text-gray-500 hover:text-black hover:bg-gray-100 transition-all disabled:opacity-30 shrink-0 shadow-sm" disabled={!sections.length || sections[sections.length - 1]?.id === selectedSectionId}>
                         <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
                 </div>
             </div>
 
-            {/* --- HYBRID LAYOUT CONTENT --- */}
+            {/* --- CONTENIDO DE INTERFAZ HIBRIDA --- */}
             <div className="flex-1 overflow-hidden mt-6 pb-24 w-full px-4 sm:px-8 max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-6">
 
-                {/* Visual Map (Top in Mobile, Right in Desktop) */}
+                {/* MAPA VISUAL (ARRIBA EN MOVIL, DERECHA EN ESCRITORIO) */}
                 <div className="w-full lg:w-5/12 xl:w-1/3 shrink-0 h-[300px] lg:h-full lg:order-2">
                     <ParkingSectionMap section={activeSection} />
                 </div>
 
-                {/* Grid of Spaces (Bottom in Mobile, Left in Desktop with Scroll) */}
+                {/* CUADRICULA DE ESPACIOS (ABAJO EN MOVIL, IZQUIERDA EN ESCRITORIO CON DESPLAZAMIENTO) */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar lg:order-1 relative rounded-3xl bg-white/50 border border-gray-100 shadow-sm p-4 sm:p-6 backdrop-blur-sm">
                     {loading ? (
                         <div className="flex items-center justify-center h-full">
@@ -388,7 +388,7 @@ const ParkingPage = () => {
 
             </div>
 
-            {/* ACTION MODAL / BOTTOM SHEET FOR REGULAR ACTIONS */}
+            {/* MODAL DE ACCIONES / HOJA INFERIOR PARA ACCIONES REGULARES */}
             {actionSpace && !expiredPrompt && (
                 <div className="absolute inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setActionSpace(null)}>
                     <div
@@ -457,7 +457,7 @@ const ParkingPage = () => {
                 </div>
             )}
 
-            {/* EXPIRATION PROMPT MODAL */}
+            {/* MODAL DE AVISO DE EXPIRACION */}
             {expiredPrompt && (
                 <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md px-4" onClick={(e) => e.stopPropagation()}>
                     <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl flex flex-col items-center animate-pop" onClick={e => e.stopPropagation()}>
@@ -482,7 +482,7 @@ const ParkingPage = () => {
                 </div>
             )}
 
-            {/* EXPIRING SOON WARNING MODAL */}
+            {/* MODAL DE ADVERTENCIA DE PROXIMA EXPIRACION */}
             {expiringWarningPrompt && !expiredPrompt && (
                 <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md px-4" onClick={(e) => e.stopPropagation()}>
                     <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl flex flex-col items-center animate-pop" onClick={e => e.stopPropagation()}>

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Script de Importación de Horarios ESIME
-Versión: 2.0
-Fecha: 2026-02-14
+ARCHIVO: scripts/import_horarios.py
 
-Transforma datos de horarios_sqlite.sql (formato desnormalizado)
-a la nueva estructura normalizada de base de datos.
+SCRIPT DE IMPORTACION DE HORARIOS ESIME
+
+Transforma datos transaccionales de horarios_sqlite.sql (formato desnormalizado crudo)
+hacia la nueva estructura atómica de base de datos relacional modelada.
 """
 
 import sqlite3
@@ -15,8 +15,10 @@ from pathlib import Path
 
 def parse_horario_field(field_value):
     """
-    Parsea campo como '13:00 a 14:30\n1103' 
-    Retorna: (hora_inicio, hora_fin, salon)
+    ANALIZADOR DE CAMPO DE HORARIO
+    
+    Decodifica o parsea logica de una combinacion cruda (ej. '13:00 a 14:30\\n1103') 
+    Retornando tupla segregada: (hora_inicio, hora_fin, salon)
     """
     if not field_value or field_value == 'NULL':
         return None, None, None
@@ -25,7 +27,7 @@ def parse_horario_field(field_value):
     if len(lines) == 0:
         return None, None, None
     
-    # Extraer horario
+    # EXTRACCION REGEX FRONTAL DE CORTE HORARIO
     horario_match = re.match(r'(\d{1,2}:\d{2})\s*a\s*(\d{1,2}:\d{2})', lines[0])
     if not horario_match:
         return None, None, None
@@ -33,18 +35,26 @@ def parse_horario_field(field_value):
     hora_inicio = horario_match.group(1)
     hora_fin = horario_match.group(2)
     
-    # Extraer salón (si existe)
+    # EXTRACCION REGEX POSTERIOR DE NUMERO AULA
     salon = lines[1].strip() if len(lines) > 1 else None
     
     return hora_inicio, hora_fin, salon
 
 def extract_semestre_from_grupo(clave):
-    """Extrae semestre del primer dígito de la clave"""
+    """
+    EXTRACCION LOGICA DE SEMESTRE NOMINAL
+    
+    Aisla numéricamente y computa el semestre a partir del prefijo matriculador de grupo.
+    """
     match = re.match(r'(\d)', clave)
     return int(match.group(1)) if match else 1
 
 def extract_turno_from_grupo(clave):
-    """Extrae turno del prefijo CM/CV/CX"""
+    """
+    EXTRACCION LOGICA DE CATEGORIA TURNO
+    
+    Cataloga o filtra el prefijo (CM/CV/CX) de grupo devolviendo horario genérico diurno o vespertino.
+    """
     if 'CM' in clave:
         return 'matutino'
     elif 'CV' in clave:
@@ -55,8 +65,9 @@ def extract_turno_from_grupo(clave):
 
 def import_horarios_from_sql(db_path, sql_file_path):
     """
-    Importa horarios desde archivo SQL desnormalizado
-    a la nueva estructura normalizada
+    IMPORTADOR MASIVO SQL DE BLOQUES HORARIOS
+    
+    Recorre el volcado y cruza lógicamente con un esquema normalizado estructurado ORM.
     """
     print("=" * 80)
     print("IMPORTACIÓN DE HORARIOS - ESIME")
@@ -79,7 +90,7 @@ def import_horarios_from_sql(db_path, sql_file_path):
     with open(sql_file_path, 'r', encoding='utf-8') as f:
         sql_content = f.read()
     
-    # Extraer todos los INSERT statements
+    # Expresion regular masiva para aislar sentencias INSERT INTO de un volcado nativo SQL crudo.
     insert_pattern = r"INSERT INTO horarios \(materia, grupo, lunes, martes, miercoles, jueves, viernes, profesor\) VALUES \((.*?)\);"
     matches = re.findall(insert_pattern, sql_content, re.DOTALL)
     

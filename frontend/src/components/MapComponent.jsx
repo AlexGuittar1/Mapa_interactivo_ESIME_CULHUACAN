@@ -1,3 +1,6 @@
+// ARCHIVO: src/components/MapComponent.jsx
+// COMPONENTE PRINCIPAL DE NAVEGACION Y RENDERIZADO CARTOGRAFICO MATRIZ
+
 import React, { useState, useEffect } from 'react';
 import { MapContainer, Marker, Popup, Polyline, ImageOverlay, useMap, TileLayer, useMapEvents } from 'react-leaflet';
 import { useNavigate } from 'react-router-dom';
@@ -9,7 +12,7 @@ import { User, Compass, Navigation as NavIcon, Car, Bookmark, Map as MapIcon, Pl
 import SavedPlacesSheet from './SavedPlacesSheet';
 import { savePlace, deletePlace, updatePlace } from '../services/api';
 
-// Configuracion de iconos
+// CONFIGURACION DE ICONOS BASE LEAFLET
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -17,7 +20,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Iconos personalizados del mapa
+// ICONOS PERSONALIZADOS DEL MAPA (PINES CON RUTA COLOR)
 const maroonIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
@@ -52,7 +55,7 @@ const CarIcon = L.icon({
     className: 'drop-shadow-lg'
 });
 
-// Componente que muestra la ubicacion del usuario
+// COMPONENTE DINAMICO QUE MUESTRA Y RASTREA LA UBICACION DEL USUARIO (GPS)
 const LocationMarker = ({ onLocationUpdate }) => {
     const [position, setPosition] = useState(null);
     const map = useMap();
@@ -73,7 +76,7 @@ const LocationMarker = ({ onLocationUpdate }) => {
     );
 };
 
-// Manejador de clicks en el mapa para agregar pins personalizados
+// MANEJADOR DE CLICKS EN EL MAPA PARA AGREGAR PINES PERSONALIZADOS
 const MapClickHandler = ({ activeTab, onMapClick }) => {
     useMapEvents({
         click: (e) => {
@@ -85,7 +88,7 @@ const MapClickHandler = ({ activeTab, onMapClick }) => {
     return null;
 };
 
-// Controlador que anima la camara del mapa hacia una ubicacion
+// CONTROLADOR DE CAMARA LIGADA: ANIMA HACIA LA UBICACION OBJETIVO
 const MapController = ({ targetLocation }) => {
     const map = useMap();
     useEffect(() => {
@@ -99,14 +102,14 @@ const MapController = ({ targetLocation }) => {
     return null;
 };
 
-// Componente principal del mapa
+// COMPONENTE PRINCIPAL MATRIX DEL MAPA (ESTADO Y RENDERIZADO GLOBAL)
 const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, navInfo, onSelectPoint, onCalculateRoute, selection, showPins, togglePins }) => {
     const navigate = useNavigate();
     const [userPos, setUserPos] = useState(null);
     const [activeTab, setActiveTab] = useState('explorar');
     const [parkedCar, setParkedCar] = useState(null);
 
-    // Cargar lugar de estacionamiento del GPS
+    // CARGAR LUGAR DE ESTACIONAMIENTO PREVIO DESDE ALMACENAJE LOCAL GPS
     useEffect(() => {
         const savedCar = localStorage.getItem("mi_coche_gps");
         if (savedCar) {
@@ -118,25 +121,25 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
         }
     }, []);
 
-    // Estado del modo de navegacion
+    // ESTADOS DEL MODO DE NAVEGACION Y ENRUTAMIENTO
     const [isNavigating, setIsNavigating] = useState(false);
     const [navOrigin, setNavOrigin] = useState("Tu ubicacion");
     const [navDestination, setNavDestination] = useState("");
 
-    // Estado para agregar pins personalizados
+    // ESTADOS PARA AGREGAR Y MANEJAR PINES PERSONALIZADOS
     const [pendingPin, setPendingPin] = useState(null);
     const [pinName, setPinName] = useState("");
     const [editingPinId, setEditingPinId] = useState(null);
 
 
-    // Estado de busqueda y control
+    // ESTADOS DE BUSQUEDA, RESULTADOS Y CONTROL ACTIVO
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [targetLocation, setTargetLocation] = useState(null);
     const [selectingMode, setSelectingMode] = useState(null); // 'origin' or 'destination'
 
-    // Initial search logic
+    // LOGICA INICIAL DE BUSQUEDA CRUZADA (EDIFICIOS Y PINES CUST)
     const handleSearch = (query) => {
         setSearchQuery(query);
         if (!query.trim()) {
@@ -147,17 +150,17 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
 
         const lowerQuery = query.toLowerCase();
 
-        // Search in Buildings (using name or nombre)
+        // BUSCAR EN EDIFICIOS BASE DEL SISTEMA
         const buildingMatches = buildings
             .filter(b => (b.name || b.nombre || "").toLowerCase().includes(lowerQuery))
             .map(b => ({ ...b, name: b.name || b.nombre, type: 'static', id: `b-${b.id}` }));
 
-        // Search in Custom Pins
+        // BUSCAR EN PINES PERSONALIZADOS DEL USUARIO
         const customMatches = customPins
             .filter(p => p.name.toLowerCase().includes(lowerQuery))
             .map(p => ({ ...p, type: 'custom', id: `cust-${p.id}` }));
 
-        // Include parked car if it matches
+        // INCLUIR COCHE ESTACIONADO SI COINCIDE PARCIALMENTE
         let parkedMatch = [];
         if (parkedCar && parkedCar.name.toLowerCase().includes(lowerQuery)) {
             parkedMatch = [{ ...parkedCar, type: 'car', id: `car-${parkedCar.spaceId || 'sys'}` }];
@@ -184,24 +187,24 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
         }, 800);
     };
 
-    // Estado para visibilidad selectiva de pins
+    // ESTADO DE VISIBILIDAD SELECTIVA PUNTUAL
     const [visiblePinIds, setVisiblePinIds] = useState([]);
 
-    // Estado para ocultar pines del sistema (Eliminados por usuario)
+    // ESTADO PARA OCULTAR PINES DEL SISTEMA (PURGANDO CACHE HISTORICA V2)
     const [hiddenPinIds, setHiddenPinIds] = useState(() => {
         const saved = localStorage.getItem('hidden_sys_pins_v2'); // V2 resets old caches
         return saved ? JSON.parse(saved) : [];
     });
 
-    // Referencias para los markers
+    // REFERENCIAS DIRECTAS DEL DOM PARA LOS MARCADORES
     const markerRefs = React.useRef({});
 
-    // Logica para filtrar por tipo
+    // LOGICA EXCLUSIVA PARA FILTRAR IN-SITU POR CATEGORIA U EVENTO
     const handleFilterClick = (type) => {
         let searchTerm = type.toLowerCase();
         let exactMatchName = null;
 
-        // Configuration for specific buttons
+        // CONFIGURACION RIGIDA PARA BOTONES ESPECIFICOS NOMINALES
         if (type === 'Auditorio') exactMatchName = "Auditorio";
         if (type === 'Gimnasio') exactMatchName = "Gimnasio de Basquetbol/Voleibol/Taekwondo";
         if (type === 'Cafeteria') exactMatchName = "Cafeteria Principal";
@@ -212,9 +215,9 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
             match = buildings.find(b => (b.name || b.nombre) === exactMatchName);
         }
 
-        // Fallback or generic search
+        // BUSCADOR TOLERANTE A VARIACIONES O ESCRITURA MANUAL
         if (!match) {
-            // Correcion de terminos para busqueda generica
+            // CORRECCION DE TERMINOS ERRATICOS PARA BUSQUEDA GENERICA
             if (type === 'Gimnasio') searchTerm = 'gimnacio';
             if (type === 'Cafeteria') searchTerm = 'cafeteria';
 
@@ -243,19 +246,19 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
 
 
 
-    // Limites del mapa
+    // LIMITES CARTOGRAFICOS (BOUNDING BOX)
     const imageBounds = MAP_CONFIG.overlay.bounds;
     const panningBounds = L.latLngBounds([
         [imageBounds[0][0] - 0.006, imageBounds[0][1] - 0.002],
         [imageBounds[1][0] + 0.002, imageBounds[1][1] + 0.002]
     ]);
 
-    // Maneja el click en el mapa para agregar un pin
+    // MANEUJA EL CLICK EN EL MAPA PARA AGREGAR UN PIN
     const handleMapClick = (latlng) => {
         setPendingPin(latlng);
     };
 
-    // Guarda o Actualiza un pin personalizado
+    // GUARDA O ACTUALIZA FORMALMENTE UN PIN PERSONALIZADO CONECTANDO AL BACKEND
     const handleSavePin = async () => {
         if (!pinName.trim()) {
             alert("Por favor ingresa un nombre.");
@@ -283,7 +286,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
 
         try {
             if (editingPinId !== null) {
-                // UPDATE EXISTING PIN
+                // ACTUALIZAR PIN EXISTENTE
                 console.log("Updating pin:", editingPinId);
                 const updatedPin = await updatePlace(editingPinId, {
                     name: pinName,
@@ -297,7 +300,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                 }
                 alert("Actualizado correctamente");
             } else {
-                // CREATE NEW PIN
+                // CREAR NUEVO PIN
                 if (!pendingPin) return;
                 const newPin = await savePlace({
                     user_boleta: user.boleta,
@@ -338,20 +341,20 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
         setEditingPinId(null);
     };
 
-    // Inicia el modo navegacion
+    // INICIAR EL MODO NAVEGACION ACTIVO
     const startNavigation = () => {
         setIsNavigating(true);
         onSelectPoint('destination', selection.destination);
     };
 
-    // Inicia el calculo de la ruta
+    // INICIAR EL CALCULO DE LA RUTA SOLICITADA
     const handleStartRoute = () => {
         if (onCalculateRoute && navDestination) {
             onCalculateRoute(navOrigin, navDestination, userPos);
         }
     };
 
-    // Sale del modo navegacion
+    // SALIR DEL MODO NAVEGACION
     const exitNavigation = () => {
         setIsNavigating(false);
         setNavDestination("");
@@ -359,8 +362,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
         setRoute(null);
     };
 
-    // Elimina un pin personalizado
-    // Elimina un pin personalizado o oculta uno del sistema
+    // ELIMINACION LOGICA (SISTEMA) O FISICA (PERSONAL) DE PINES GUARDADOS
     const handleDeletePin = async (id, name, isCustom) => {
         if (confirm(`Eliminar ${name}?`)) {
             if (isCustom) {
@@ -375,7 +377,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                     alert("Error al eliminar: " + e.message);
                 }
             } else {
-                // Es un pin del sistema -> Ocultar logicamente
+                // ES UN PIN DEL SISTEMA -> OCULTAR LOGICAMENTE
                 const newHidden = [...hiddenPinIds, id];
                 setHiddenPinIds(newHidden);
                 localStorage.setItem('hidden_sys_pins_v2', JSON.stringify(newHidden));
@@ -383,14 +385,14 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
         }
     };
 
-    // Maneja el click en la brujula
+    // MANEJO DE GEOLOCALIZACION ESTIMADA Y ALERTA DE LEJANIA VIA BRUJULA
     const handleCompassClick = () => {
         if (!userPos) {
             alert("Ubicacion no disponible");
             return;
         }
 
-        // Centro aproximado de la escuela
+        // CENTRO APROXIMADO EXCLUYENTE DE LA ESCUELA
         const schoolCenter = L.latLng(19.33059, -99.11211);
         const dist = schoolCenter.distanceTo(userPos);
 
@@ -401,7 +403,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
         }
     };
 
-    // Intercambia origen y destino
+    // INTERCAMBIADOR DIRECCIONAL: CAMBIA ORIGEN A DESTINO Y VICEVERSA
     const handleSwapOriginDest = () => {
         const temp = navOrigin;
         setNavOrigin(navDestination);
@@ -420,7 +422,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
         popupAnchor: [0, -30]
     });
 
-    // Selecciona un pin para navegacion
+    // ACCION SELECTIVA EN POPUP PARA ESCOGER ORIGEN O DESTINO RAPIDAMENTE
     const handlePinSelectForNav = (name) => {
         if (selectingMode === 'origin') {
             setNavOrigin(name);
@@ -435,14 +437,14 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
             return;
         }
 
-        // Default behavior (Start new navigation to this point)
+        // COMPORTAMIENTO POR DEFECTO (INICIAR NUEVA NAVEGACION HACIA ESTE PUNTO)
         setNavDestination(name);
         setIsNavigating(true);
         onSelectPoint('destination', name);
         onSelectPoint('origin', 'Tu ubicacion');
     };
 
-    // Renderiza un marcador en el mapa
+    // RUTINA QUE ACOMODA ICONOGRAFIA GRADIENTE Y REDERIZA MARCADORES AISLADOS SEGUN MODO
     const renderMarker = (name, lat, lon, id, isCustom = false) => {
         const isVisibleById = visiblePinIds.includes(id);
 
@@ -479,7 +481,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                     <div className="text-center p-1 flex flex-col gap-2 min-w-35">
                         <h3 className="font-bold text-gray-800 border-b pb-1">{name}</h3>
 
-                        {/* Standard Navigation Actions for ALL pins */}
+                        {/* ACCIONES DE NAVEGACION ESTANDAR PARA TODOS LOS MARCADORES */}
                         <div className="flex flex-col gap-1.5 mt-1">
                             {selectingMode ? (
                                 <button
@@ -490,7 +492,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                                 </button>
                             ) : isNavigating ? (
                                 <>
-                                    {/* Origin Selection */}
+                                    {/* SELECCION MATRIZ DE ORIGEN */}
                                     {isOrigin ? (
                                         <span className="text-xs text-blue-600 font-bold bg-blue-50 py-1 px-2 rounded">📍 Origen Actual</span>
                                     ) : (
@@ -505,7 +507,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                                         </button>
                                     )}
 
-                                    {/* Destination Selection */}
+                                    {/* SELECCION MATRIZ DE DESTINO */}
                                     {isDest ? (
                                         <span className="text-xs text-green-600 font-bold bg-green-50 py-1 px-2 rounded">🏁 Destino Actual</span>
                                     ) : (
@@ -522,7 +524,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                                     )}
                                 </>
                             ) : (
-                                /* Normal Mode Actions */
+                                /* ACCIONES DE SELECCION ESTANDAR */
                                 <>
                                     <button
                                         onClick={() => handlePinSelectForNav(name)}
@@ -545,7 +547,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                             )}
                         </div>
 
-                        {/* Custom Pin Actions (Delete + Edit) */}
+                        {/* ACCIONES DE MARCADOR PERSONALIZADO (ELIMINAR Y EDITAR) */}
                         {isCustom && (
                             <div className="flex flex-col gap-1 mt-2 pt-2 border-t">
                                 <div className="flex gap-2">
@@ -569,15 +571,14 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                         )}
                     </div>
                 </Popup>
-            </Marker>
+            </Marker >
         );
     };
 
     return (
         <div className="relative h-screen w-full flex flex-col bg-white overflow-hidden font-sans">
 
-            {/* INTERFAZ DEL MODO NAVEGACION ENCABEZADO ROJO */}
-            {/* INTERFAZ DEL MODO NAVEGACION ENCABEZADO ROJO */}
+            {/* INTERFAZ DEL MODO NAVEGACION (ENCABEZADO ROJO DESLIZANTE) */}
             {isNavigating && (
                 <>
                     {!selectingMode ? (
@@ -587,7 +588,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                                     <ArrowLeft size={24} />
                                 </button>
                                 <div className="flex-1 flex flex-col gap-2">
-                                    {/* Entrada de origen */}
+                                    {/* CAJA ENTRADA ORIGEN */}
                                     <div
                                         className="bg-black/20 rounded-lg flex items-center px-3 py-2 border border-white/10 cursor-pointer hover:bg-black/30 transition-colors"
                                         onClick={() => setSelectingMode('origin')}
@@ -597,7 +598,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                                             {navOrigin || "Tu ubicación"}
                                         </div>
                                     </div>
-                                    {/* Entrada de destino */}
+                                    {/* CAJA ENTRADA DESTINO */}
                                     <div
                                         className="bg-black/20 rounded-lg flex items-center px-3 py-2 border border-white/10 cursor-pointer hover:bg-black/30 transition-colors"
                                         onClick={() => setSelectingMode('destination')}
@@ -634,7 +635,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                 </>
             )}
 
-            {/* --- NORMAL TOP UI --- */}
+            {/* --- UI SUPERIOR DE MODO NORMAL --- */}
             {!isNavigating && activeTab !== 'guardados' && (
                 <div className="absolute top-0 left-0 w-full z-1001 px-4 pt-12 pb-4 flex flex-col gap-3 pointer-events-none">
                     <div className="bg-white rounded-full shadow-lg flex items-center px-4 py-3 gap-3 pointer-events-auto">
@@ -668,7 +669,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                             <User className="h-6 w-6 text-black border-2 border-black rounded-full p-0.5" />
                         </button>
                     </div>
-                    {/* Filter Chips */}
+                    {/* CHIPS DE FILTRADO CATEGORICO O RAPIDO */}
                     <div className="flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto pb-1">
                         {['Cafeteria', 'Gimnasio', 'Auditorio', 'Biblioteca', 'Cancha'].map((chip, idx) => (
                             <button
@@ -686,7 +687,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                 </div>
             )}
 
-            {/* --- MAP LAYER --- */}
+            {/* --- MATRIZ CAPA DE MAPA (LEAFLET) --- */}
             <div className="flex-1 relative z-0">
                 <MapContainer
                     center={MAP_CONFIG.center}
@@ -709,15 +710,15 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                     <MapController targetLocation={targetLocation} />
                     <MapClickHandler activeTab={activeTab} onMapClick={handleMapClick} />
 
-                    {/* Markers */}
-                    {/* Filter out buildings that are already in customPins to avoid overlap */}
+                    {/* MARCADORES ESTRUCTURALES (PINES COMPUESTOS) */}
+                    {/* FILTRO PREVENTIVO PARA EVITAR SUPERPOSICION ENTRE PIN SISTEMA Y PIN CUST IGUAL */}
                     {buildings
                         .filter(b => !customPins.some(p => p.name === (b.name || b.nombre)))
                         .filter(b => !hiddenPinIds.includes(`b-${b.id}`))
                         .map((b) => renderMarker(b.name || b.nombre, b.lat, b.lon, `b-${b.id}`))}
                     {customPins.map((pin) => renderMarker(pin.name, pin.lat, pin.lon, `cust-${pin.id}`, true))}
 
-                    {/* Parked Car Marker */}
+                    {/* MARCADOR DE COCHE ESTACIONADO (SISTEMA GPS) */}
                     {parkedCar && (
                         <Marker position={[parkedCar.lat, parkedCar.lng]} icon={CarIcon} ref={(el) => { if (el) markerRefs.current[`car-${parkedCar.spaceId || 'sys'}`] = el; }}>
                             <Popup className="custom-popup rounded-2xl overflow-hidden border-0 shadow-2xl pb-1" closeButton={false}>
@@ -761,7 +762,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                         <Polyline positions={route} color="#3b82f6" weight={7} opacity={0.9} />
                     )}
 
-                    {/* Pending Custom Pin Marker (Just the marker, no popup form) */}
+                    {/* MARCADOR DE PIN TEMPORAL (PENDIENTE POR GUARDAR) */}
                     {pendingPin && (
                         <Marker position={pendingPin} icon={blueIcon} />
                     )}

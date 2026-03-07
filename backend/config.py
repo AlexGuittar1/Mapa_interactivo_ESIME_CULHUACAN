@@ -1,20 +1,41 @@
+"""
+ARCHIVO: config.py
+
+Este archivo maneja la configuración de la aplicación y sus diferentes entornos.
+Define la cadena de conexión a la base de datos, los ajustes de seguridad
+y la integración con proveedores de autenticación externos como Azure AD.
+Permite alternar entre un entorno local y uno institucional dinámicamente.
+"""
+
+# IMPORTACIONES
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
+# CLASES DE CONFIGURACION
+
 class BaseConfig:
-    """Configuración base compartida por todos los entornos."""
+    """
+    CONFIGURACION BASE
+    
+    Configuración compartida por todos los entornos del sistema.
+    Establece la clave secreta y deshabilita el rastreo de modificaciones
+    de SQLAlchemy para mejorar el rendimiento.
+    """
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 class LocalConfig(BaseConfig):
-    """Modo local: SQLite + autenticación por boleta.
+    """
+    CONFIGURACION LOCAL
     
-    Este es el modo por defecto. No requiere ninguna configuración
-    adicional y funciona con la base de datos local campus.db.
+    Modo local: Utiliza SQLite y autenticación básica basada en el número de boleta.
+    Este es el modo por defecto diseñado para desarrollo o pruebas. No requiere
+    configuración de variables de red adicionales, ya que opera sobre el archivo
+    'campus.db'.
     """
     ENV_NAME = 'local'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///campus.db'
@@ -23,20 +44,23 @@ class LocalConfig(BaseConfig):
 
 
 class InstitutionalConfig(BaseConfig):
-    """Modo institucional: Base de datos externa + Azure AD.
+    """
+    CONFIGURACION INSTITUCIONAL
     
-    Este modo se activa cuando la escuela integra sus propios sistemas.
-    Requiere configurar las variables de entorno correspondientes.
+    Modo institucional: Utiliza base de datos externa y Azure AD para autenticación.
+    Este entorno está diseñado para su despliegue en producción cuando la escuela
+    conecta sus sistemas internos. Requiere validación y configuración a través de
+    variables de entorno.
     """
     ENV_NAME = 'institutional'
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         'DATABASE_URL',
-        'sqlite:///campus.db'  # Fallback a SQLite si no se configura
+        'sqlite:///campus.db'
     )
     DATA_PROVIDER = os.environ.get('DATA_PROVIDER', 'sqlserver')
     AUTH_PROVIDER = 'azure'
 
-    # Azure AD
+    # CONFIGURACION DE AZURE AD
     AZURE_TENANT_ID = os.environ.get('AZURE_TENANT_ID', '')
     AZURE_CLIENT_ID = os.environ.get('AZURE_CLIENT_ID', '')
     AZURE_CLIENT_SECRET = os.environ.get('AZURE_CLIENT_SECRET', '')
@@ -45,24 +69,32 @@ class InstitutionalConfig(BaseConfig):
         'https://login.microsoftonline.com/common'
     )
 
-    # API Institucional (alternativa a DB directa)
+    # CONFIGURACION DE API INSTITUCIONAL
     INSTITUTIONAL_API_URL = os.environ.get('INSTITUTIONAL_API_URL', '')
     INSTITUTIONAL_API_KEY = os.environ.get('INSTITUTIONAL_API_KEY', '')
 
 
-# Registro de configuraciones disponibles
+# DICCIONARIO DE CONFIGURACIONES
 _configs = {
     'local': LocalConfig,
     'institutional': InstitutionalConfig,
 }
 
 
+# FUNCIONES PRINCIPALES
+
 def get_config():
-    """Obtiene la configuración según la variable de entorno APP_ENV.
+    """
+    OBTENER CONFIGURACION
     
-    Uso:
-        APP_ENV=local          → SQLite + auth por boleta (default)
-        APP_ENV=institutional  → DB externa + Azure AD
+    Esta función examina la variable de entorno 'APP_ENV' para determinar
+    el entorno actual de ejecución de la aplicación.
+    
+    Valores posibles de APP_ENV:
+    - local: Entorno de desarrollo aislado con SQLite (valor por defecto).
+    - institutional: Entorno de producción en red con Azure y proveedores externos.
+    
+    Retorna la instancia de configuración apropiada.
     """
     env = os.environ.get('APP_ENV', 'local')
     config_class = _configs.get(env, LocalConfig)

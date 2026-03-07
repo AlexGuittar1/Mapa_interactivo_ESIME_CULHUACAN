@@ -1,12 +1,26 @@
+"""
+ARCHIVO: models.py
+
+Este archivo contiene la definición de todos los modelos de la base de datos
+utilizando SQLAlchemy. Define la estructura, tipos de datos y relaciones 
+entre entidades fundamentales como usuarios, horarios, rutas de navegación
+y el sistema dinámico de estacionamiento.
+"""
+
+# IMPORTACIONES
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-# ============================================================================
-# TABLAS DE NAVEGACIÓN (Sin cambios)
-# ============================================================================
+# MODELOS DE NAVEGACION
 
 class EdificioDB(db.Model):
+    """
+    MODELO EDIFICIO
+    
+    Representa un edificio físico dentro del campus de la institución,
+    almacenando sus coordenadas geográficas para referenciarlo en el mapa.
+    """
     __tablename__ = "edificios"
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), unique=True, nullable=False)
@@ -17,6 +31,12 @@ class EdificioDB(db.Model):
         return {"id": self.id, "nombre": self.nombre, "lat": self.latitud, "lon": self.longitud}
 
 class CaminoDB(db.Model):
+    """
+    MODELO CAMINO
+    
+    Representa un trayecto o ruta directa entre dos puntos topológicos, 
+    utilizada por el motor de enrutamiento para trazar caminos dentro del campus.
+    """
     __tablename__ = "caminos"
     id = db.Column(db.Integer, primary_key=True)
     origen = db.Column(db.String(50), nullable=False)
@@ -26,12 +46,17 @@ class CaminoDB(db.Model):
     def to_dict(self):
         return {"origen": self.origen, "destino": self.destino, "distancia": self.distancia}
 
-# ============================================================================
-# NUEVOS MODELOS DE HORARIOS (Refactorizados)
-# ============================================================================
+# MODELOS ACADEMICOS Y DE HORARIOS
+
 
 class Alumno(db.Model):
-    """Modelo de alumnos (anteriormente usuarios)"""
+    """
+    MODELO ALUMNO
+    
+    Identidad principal del usuario dentro de la aplicación.
+    Almacena datos personales, identificadores institucionales y mantiene
+    las relaciones con inscripciones, reservas y configuraciones.
+    """
     __tablename__ = "alumnos"
     id = db.Column(db.Integer, primary_key=True)
     boleta = db.Column(db.String(20), unique=True, nullable=False)
@@ -40,13 +65,13 @@ class Alumno(db.Model):
     carrera = db.Column(db.String(100))
     vehiculo = db.Column(db.String(20))
     id_grupo = db.Column(db.Integer, db.ForeignKey('grupos.id'))
-    # --- Campos de integración institucional ---
+    # CAMPOS DE INTEGRACION INSTITUCIONAL
     institutional_id = db.Column(db.String(100), unique=True, nullable=True)
     auth_provider = db.Column(db.String(20), default='local')
     last_login = db.Column(db.DateTime, nullable=True)
     is_synced = db.Column(db.Boolean, default=False)
 
-    # Relaciones
+    # RELACIONES
     inscripciones = db.relationship('Inscripcion', back_populates='alumno', lazy=True, cascade='all, delete-orphan')
     saved_places = db.relationship('SavedPlace', back_populates='user', lazy=True, cascade='all, delete-orphan')
     occupied_spaces = db.relationship('ParkingSpace', foreign_keys='ParkingSpace.occupied_by', back_populates='occupant', lazy=True)
@@ -64,7 +89,12 @@ class Alumno(db.Model):
         }
 
 class Materia(db.Model):
-    """Modelo de materias/asignaturas"""
+    """
+    MODELO MATERIA
+    
+    Define una asignatura curricular del plan de estudios.
+    Contiene información propia del curso como valor de créditos y semestre.
+    """
     __tablename__ = "materias"
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(200), unique=True, nullable=False)
@@ -72,7 +102,7 @@ class Materia(db.Model):
     creditos = db.Column(db.Integer)
     semestre = db.Column(db.Integer)
 
-    # Relaciones
+    # RELACIONES
     materias_grupos = db.relationship('MateriaGrupo', back_populates='materia', lazy=True, cascade='all, delete-orphan')
 
     def to_dict(self):
@@ -85,14 +115,19 @@ class Materia(db.Model):
         }
 
 class Profesor(db.Model):
-    """Modelo de profesores"""
+    """
+    MODELO PROFESOR
+    
+    Identidad del docente que imparte las materias, incluyendo datos de
+    contacto e información administrativa como el departamento.
+    """
     __tablename__ = "profesores"
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(200), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True)
     departamento = db.Column(db.String(100))
 
-    # Relaciones
+    # RELACIONES
     materias_grupos = db.relationship('MateriaGrupo', back_populates='profesor', lazy=True)
 
     def to_dict(self):
@@ -104,7 +139,13 @@ class Profesor(db.Model):
         }
 
 class Salon(db.Model):
-    """Modelo de salones/aulas"""
+    """
+    MODELO SALON
+    
+    Espacio físico destinado a la docencia. Permite asociar
+    las clases a un lugar físico dentro del esquema de edificios,
+    y establece propiedades operativas como capacidad o tipo de aula.
+    """
     __tablename__ = "salones"
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), unique=True, nullable=False)
@@ -112,7 +153,7 @@ class Salon(db.Model):
     capacidad = db.Column(db.Integer)
     tipo = db.Column(db.String(20))  # 'aula', 'laboratorio', 'auditorio'
 
-    # Relaciones
+    # RELACIONES
     edificio = db.relationship('EdificioDB', backref=db.backref('salones', lazy=True))
     horarios = db.relationship('Horario', back_populates='salon', lazy=True)
 
@@ -127,7 +168,12 @@ class Salon(db.Model):
         }
 
 class Grupo(db.Model):
-    """Modelo de grupos académicos"""
+    """
+    MODELO GRUPO
+    
+    Organización académica de un bloque de estudiantes. Define atributos
+    agrupadores como semestre, turno, bloque de carrera y su identificador.
+    """
     __tablename__ = "grupos"
     id = db.Column(db.Integer, primary_key=True)
     clave = db.Column(db.String(20), unique=True, nullable=False)  # ej: "1CM54", "3CV12"
@@ -136,7 +182,7 @@ class Grupo(db.Model):
     carrera = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    # Relaciones
+    # RELACIONES
     materias_grupos = db.relationship('MateriaGrupo', back_populates='grupo', lazy=True, cascade='all, delete-orphan')
 
     def to_dict(self):
@@ -149,7 +195,12 @@ class Grupo(db.Model):
         }
 
 class MateriaGrupo(db.Model):
-    """Tabla central: Relación Materia-Grupo-Profesor"""
+    """
+    MODELO MATERIA GRUPO
+    
+    Tabla relacional central que asocia una materia específica impartida
+    a un grupo en particular, añadiendo el profesor a cargo y el ciclo.
+    """
     __tablename__ = "materias_grupos"
     id = db.Column(db.Integer, primary_key=True)
     materia_id = db.Column(db.Integer, db.ForeignKey('materias.id'), nullable=False)
@@ -157,7 +208,7 @@ class MateriaGrupo(db.Model):
     profesor_id = db.Column(db.Integer, db.ForeignKey('profesores.id'))
     ciclo_escolar = db.Column(db.String(20), nullable=False, default='2025-2026')
 
-    # Relaciones
+    # RELACIONES
     materia = db.relationship('Materia', back_populates='materias_grupos')
     grupo = db.relationship('Grupo', back_populates='materias_grupos')
     profesor = db.relationship('Profesor', back_populates='materias_grupos')
@@ -178,7 +229,12 @@ class MateriaGrupo(db.Model):
         }
 
 class Horario(db.Model):
-    """Modelo de horarios (normalizado)"""
+    """
+    MODELO HORARIO
+    
+    Estructura normalizada para los tiempos y días de la semana en
+    los que se imparte una MateriaGrupo, en qué salón y bajo qué modalidad.
+    """
     __tablename__ = "horarios"
     id = db.Column(db.Integer, primary_key=True)
     materia_grupo_id = db.Column(db.Integer, db.ForeignKey('materias_grupos.id'), nullable=False)
@@ -188,7 +244,7 @@ class Horario(db.Model):
     salon_id = db.Column(db.Integer, db.ForeignKey('salones.id'))
     tipo_clase = db.Column(db.String(20), default='teoria')  # 'teoria', 'laboratorio', 'practica'
 
-    # Relaciones
+    # RELACIONES
     materia_grupo = db.relationship('MateriaGrupo', back_populates='horarios')
     salon = db.relationship('Salon', back_populates='horarios')
 
@@ -217,7 +273,12 @@ class Horario(db.Model):
         }
 
 class Inscripcion(db.Model):
-    """Tabla puente: Alumno ↔ MateriaGrupo"""
+    """
+    MODELO INSCRIPCION
+    
+    Tabla puente que representa la matrícula de un alumno a una asignatura
+    específica en un grupo dado. Retiene el estado académico.
+    """
     __tablename__ = "inscripciones"
     id = db.Column(db.Integer, primary_key=True)
     alumno_id = db.Column(db.Integer, db.ForeignKey('alumnos.id'), nullable=False)
@@ -226,7 +287,7 @@ class Inscripcion(db.Model):
     calificacion = db.Column(db.Float)
     estado = db.Column(db.String(20), default='activo')  # 'activo', 'baja', 'completado'
 
-    # Relaciones
+    # RELACIONES
     alumno = db.relationship('Alumno', back_populates='inscripciones')
     materia_grupo = db.relationship('MateriaGrupo', back_populates='inscripciones')
 
@@ -246,11 +307,16 @@ class Inscripcion(db.Model):
             "estado": self.estado
         }
 
-# ============================================================================
-# MODELOS DE ESTACIONAMIENTO (Actualizados con FK a alumnos)
-# ============================================================================
+# MODELOS DE ESTACIONAMIENTO Y MARCADORES
+
 
 class SavedPlace(db.Model):
+    """
+    MODELO LUGAR GUARDADO
+    
+    Permite al usuario conservar y bautizar un punto geográfico
+    de interés particular en el lienzo del mapa de la escuela.
+    """
     __tablename__ = "saved_places"
     id = db.Column(db.Integer, primary_key=True)
     user_boleta = db.Column(db.String(20), db.ForeignKey('alumnos.boleta'), nullable=False)
@@ -260,6 +326,7 @@ class SavedPlace(db.Model):
     type = db.Column(db.String(20), default='custom')
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
+    # RELACIONES
     user = db.relationship('Alumno', back_populates='saved_places')
 
     def to_dict(self):
@@ -273,6 +340,12 @@ class SavedPlace(db.Model):
         }
 
 class ParkingSection(db.Model):
+    """
+    MODELO SECCION DE ESTACIONAMIENTO
+    
+    Representa una región delimitada dentro del área del estacionamiento,
+    agrupando lógicamente un número definido de lugares o cajones.
+    """
     __tablename__ = "parking_sections"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
@@ -288,6 +361,13 @@ class ParkingSection(db.Model):
         }
 
 class ParkingSpace(db.Model):
+    """
+    MODELO ESPACIO DE ESTACIONAMIENTO
+    
+    Detalla la anatomía individual y el estado de cada cajón dentro
+    del área de parqueo institucional, vinculando a los usuarios que
+    atribuyen ocupaciones o realizan reservas y exponiendo coordenadas.
+    """
     __tablename__ = "parking_spaces"
     id = db.Column(db.Integer, primary_key=True)
     space_number = db.Column(db.String(10), unique=True, nullable=False)
@@ -307,6 +387,7 @@ class ParkingSpace(db.Model):
     distance_to_building_3 = db.Column(db.Float)
     last_updated = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
+    # RELACIONES
     occupant = db.relationship('Alumno', foreign_keys=[occupied_by], back_populates='occupied_spaces')
     reserver = db.relationship('Alumno', foreign_keys=[reserved_by], back_populates='reserved_spaces')
     section = db.relationship('ParkingSection', backref=db.backref('spaces', lazy=True))
@@ -336,6 +417,12 @@ class ParkingSpace(db.Model):
         }
 
 class ParkingReservation(db.Model):
+    """
+    MODELO RESERVA DE ESTACIONAMIENTO
+    
+    Gestiona el ciclo de vida, historial e integridad temporal de
+    la retención de un cajón asignado previamente vía plataforma.
+    """
     __tablename__ = "parking_reservations"
     id = db.Column(db.Integer, primary_key=True)
     space_id = db.Column(db.Integer, db.ForeignKey('parking_spaces.id'), nullable=False)
@@ -345,6 +432,7 @@ class ParkingReservation(db.Model):
     status = db.Column(db.String(20), default='active')
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
+    # RELACIONES
     space = db.relationship('ParkingSpace', backref=db.backref('reservations', lazy=True))
     user = db.relationship('Alumno', backref=db.backref('parking_reservations', lazy=True))
 
@@ -361,6 +449,12 @@ class ParkingReservation(db.Model):
         }
 
 class ParkingHistory(db.Model):
+    """
+    MODELO HISTORIAL DE ESTACIONAMIENTO
+    
+    Registro tipo bitácora forense de la evolución de estados 
+    (disponible, ocupado, reservado) que ocurren en los cajones de forma perpetua.
+    """
     __tablename__ = "parking_history"
     id = db.Column(db.Integer, primary_key=True)
     space_id = db.Column(db.Integer, db.ForeignKey('parking_spaces.id'), nullable=False)
@@ -370,6 +464,7 @@ class ParkingHistory(db.Model):
     new_status = db.Column(db.String(20))
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
 
+    # RELACIONES
     space = db.relationship('ParkingSpace', backref=db.backref('history', lazy=True))
 
     def to_dict(self):

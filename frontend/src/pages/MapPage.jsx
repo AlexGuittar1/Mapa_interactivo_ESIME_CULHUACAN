@@ -7,7 +7,7 @@ import { getBuildings, getParking, getRoute, getWalkingRoute, getSavedPlaces } f
 const MapPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [buildings, setBuildings] = useState(keyPoints); // Load static key points
+    const [buildings, setBuildings] = useState(keyPoints); // CARGAR PUNTOS CLAVE ESTATICOS
     const [parking, setParking] = useState([]);
     const [customPins, setCustomPins] = useState([]);
     const [route, setRoute] = useState(null);
@@ -17,7 +17,7 @@ const MapPage = () => {
 
     const togglePins = () => setShowPins(prev => !prev);
 
-    // Auto-ruta si venimos de una notificación
+    // AUTO-RUTA SI VENIMOS DE UNA NOTIFICACION
     useEffect(() => {
         if (location.state && location.state.room) {
             const roomNum = parseInt(String(location.state.room).replace(/\D/g, ''), 10);
@@ -28,10 +28,10 @@ const MapPage = () => {
             }
 
             if (targetBuilding) {
-                // Configuramos los selectores visualmente
+                // CONFIGURAMOS LOS SELECTORES VISUALMENTE
                 setSelection({ origin: 'Tu ubicación', destination: targetBuilding });
 
-                // Disparamos el cálculo automático tras un breve retraso para asegurar montaje
+                // DISPARAMOS EL CALCULO AUTOMATICO TRAS UN BREVE RETRASO PARA ASEGURAR MONTAJE
                 setTimeout(() => {
                     handleCalculateRoute('Tu ubicación', targetBuilding, null);
                 }, 800);
@@ -47,7 +47,7 @@ const MapPage = () => {
         }
         const user = JSON.parse(userStr);
 
-        // Buildings are now static keyPoints loaded in initial state
+        // LOS EDIFICIOS AHORA SON PUNTOS CLAVE ESTATICOS CARGADOS EN EL ESTADO INICIAL
         // getBuildings().then(setBuildings).catch(console.error);
         getParking().then(setParking).catch(console.error);
         getSavedPlaces(user.boleta).then(data => {
@@ -62,17 +62,17 @@ const MapPage = () => {
 
     const findCoordinates = (name) => {
         if (!name) return null;
-        if (name === "Tu ubicacion" || name === "Tu ubicación") return null; // Handle separately
+        if (name === "Tu ubicacion" || name === "Tu ubicación") return null; // MANEJAR DE FORMA SEPARADA
 
-        // Check buildings
+        // REVISAR EDIFICIOS
         const b = buildings.find(x => (x.name || x.nombre) === name);
         if (b) return { lat: b.lat, lon: b.lon };
 
-        // Check static locations
+        // REVISAR UBICACIONES ESTATICAS
         const l = locations.find(x => x.name === name);
         if (l) return { lat: l.lat, lon: l.lon };
 
-        // Check custom pins
+        // REVISAR PINES PERSONALIZADOS
         const p = customPins.find(x => x.name === name);
         if (p) return { lat: p.lat, lon: p.lon };
 
@@ -84,14 +84,14 @@ const MapPage = () => {
         const startLon = userPos ? userPos.lng : -99.11211;
         const user = JSON.parse(localStorage.getItem('user'));
 
-        getRoute({ // Uses legacy route for schedule logic
+        getRoute({ // UTILIZA RUTA LEGADA PARA LOGICA DE HORARIO
             lat: startLat,
             lon: startLon,
             boleta: user.boleta,
             type: 'next_class'
         }).then(data => {
-            // ... legacy handling or adapt to new ...
-            // For now assuming legacy endpoint still returns list of names
+            // MANEJO DEL SISTEMA LEGADO O ADAPTACION AL NUEVO
+            // POR AHORA SE ASUME QUE EL ENDPOINT LEGADO AUN RETORNA LISTA DE NOMBRES
             const coords = [];
             if (data.camino) {
                 data.camino.forEach(name => {
@@ -112,7 +112,7 @@ const MapPage = () => {
         let startCoords = null;
         let endCoords = null;
 
-        // Resolve Origin
+        // RESOLVER ORIGEN DE RUTA
         if (!originName || originName === "Tu ubicacion" || originName === "Tu ubicación") {
             if (userPos) {
                 startCoords = { lat: userPos.lat, lon: userPos.lng };
@@ -124,7 +124,7 @@ const MapPage = () => {
             startCoords = findCoordinates(originName);
         }
 
-        // Resolve Destination
+        // RESOLVER DESTINO DE RUTA
         endCoords = findCoordinates(destName);
 
         if (!startCoords || !endCoords) {
@@ -132,7 +132,7 @@ const MapPage = () => {
             return;
         }
 
-        // Call KML Router
+        // LLAMADA AL ENRUTADOR KML
         getWalkingRoute({
             start_lat: startCoords.lat,
             start_lon: startCoords.lon,

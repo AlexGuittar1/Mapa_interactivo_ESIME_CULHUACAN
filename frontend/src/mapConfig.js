@@ -1,4 +1,7 @@
+// ARCHIVO: src/mapConfig.js
+// IMPORTACION CENTRALIZADA DE CONFIGURACION CARTOGRAFICA
+
 import mapConfigData from './mapConfig.json';
 
-// Esta configuración se carga desde el archivo JSON centralizado
+// ESTA CONFIGURACION SE ACTIVA Y MONTA ABSOLUTAMENTE DESDE EL DOCUMENTO JSON INICIAL
 export const MAP_CONFIG = mapConfigData;

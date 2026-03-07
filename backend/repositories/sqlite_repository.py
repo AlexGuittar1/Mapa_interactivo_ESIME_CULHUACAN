@@ -1,12 +1,20 @@
+"""
+ARCHIVO: repositories/sqlite_repository.py
+
+Implementación basada en SQLite y SQLAlchemy local de las interfaces de 
+repositorio para control de perfiles de usuario y planificación de horarios.
+"""
 from repositories.user_repository import UserRepository, ScheduleRepository
 from models import db, Alumno, Horario, MateriaGrupo, Inscripcion, Grupo
 
 
 class SQLiteUserRepository(UserRepository):
-    """Implementación SQLite local del repositorio de usuarios.
-
-    Esta es la implementación activa por defecto. Usa Flask-SQLAlchemy
-    para acceder a la base de datos campus.db local.
+    """
+    REPOSITORIO DE USUARIOS SQLITE
+    
+    Implementación SQLite y ORM local del repositorio base de alumnos.
+    Esta es la implementación activa por defecto, operando de manera aislada 
+    sobre campus.db local bajo el paraguas de Flask-SQLAlchemy.
     """
 
     def find_by_boleta(self, boleta):
@@ -53,9 +61,14 @@ class SQLiteUserRepository(UserRepository):
 
 
 class SQLiteScheduleRepository(ScheduleRepository):
-    """Implementación SQLite local del repositorio de horarios."""
+    """
+    REPOSITORIO DE HORARIOS SQLITE
+    
+    Implementación formal y resoluta en base local de la obtención
+    de los esquemas temporales asociados a profesores o directivos.
+    """
 
-    # Mapa de nombres de día a números
+    # Mapa referencial para traducir iteradores lógicos nominales a días numerales
     DIAS_MAP = {
         'Lunes': 1, 'Martes': 2, 'Miércoles': 3,
         'Jueves': 4, 'Viernes': 5, 'Sábado': 6, 'Domingo': 7
@@ -66,12 +79,12 @@ class SQLiteScheduleRepository(ScheduleRepository):
         if not user:
             return []
 
-        # Obtener horarios a través de inscripciones
+        # Obtener mapeo matricial relacional a través de las inscripciones
         inscripciones = Inscripcion.query.filter_by(alumno_id=user.id).all()
         if inscripciones:
             return self._get_horarios_from_inscripciones(inscripciones, dia)
 
-        # Fallback: obtener por id_grupo (compatibilidad con datos actuales)
+        # Mecanismo contingente (Fallback): Atraer las asignaturas referenciando el id_grupo en bruto
         if user.id_grupo:
             return self._get_horarios_from_grupo_id(user.id_grupo, dia)
 
@@ -106,8 +119,13 @@ class SQLiteScheduleRepository(ScheduleRepository):
         return sorted(horarios, key=lambda x: x.get('hora_inicio', ''))
 
     def _get_horarios_from_grupo_id(self, id_grupo, dia=None):
-        """Fallback de compatibilidad: buscar por id_grupo del alumno."""
-        # Buscar el grupo que tenga este id_grupo
+        """
+        OBTENER CRONOGRAMA POR GRUPO CONOCIDO
+        
+        Mecanismo iterativo de contingencia (fallback de compatibilidad),
+        buscando colapsar la carencia de horario usando 'id_grupo' adscrito al perfil directo del alumno.
+        """
+        # Ubicar y aislar la entidad Grupo portadora de esta misma ID
         grupo = Grupo.query.filter_by(id=id_grupo).first()
         if not grupo:
             return []

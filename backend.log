@@ -905,3 +905,129 @@ WHERE parking_spaces.status = ? AND parking_spaces.reservation_expires_at IS NOT
 127.0.0.1 - - [06/Mar/2026 15:09:20] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
 127.0.0.1 - - [06/Mar/2026 15:09:20] "GET /api/parking HTTP/1.1" 200 -
 127.0.0.1 - - [06/Mar/2026 15:09:20] "GET /api/parking HTTP/1.1" 200 -
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/config.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/models.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/kml_router.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/kml_router.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/app.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/repositories/__init__.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/repositories/sqlite_repository.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/repositories/user_repository.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/services/__init__.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/services/auth_service.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/services/schedule_service.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/init_parking.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/middleware/auth_middleware.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/seed_inscripciones.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/scripts/import_horarios.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/fix_inscriptions.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498
+127.0.0.1 - - [06/Mar/2026 15:26:20] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Mar/2026 15:26:20] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Mar/2026 15:26:20] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [06/Mar/2026 15:26:20] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [06/Mar/2026 15:26:44] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Mar/2026 15:26:44] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [06/Mar/2026 15:26:46] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Mar/2026 15:26:46] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Mar/2026 15:26:46] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [06/Mar/2026 15:26:46] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [06/Mar/2026 15:29:53] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Mar/2026 15:29:53] "GET /api/parking HTTP/1.1" 200 -
+ * Detected change in '/Users/alexsosa/Documentos/Navegación_ESIME/backend/audit_routes.py', reloading
+[CONFIG] Entorno: local | Auth: local | Data: sqlite
+[KML] Graph loaded with 431 nodes
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 838-752-498

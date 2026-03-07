@@ -1,3 +1,12 @@
+"""
+ARCHIVO: app.py
+
+Este archivo define la aplicación Flask principal. Configura la base de datos,
+inicializa los servicios globales, expone los puntos de enlace de la API 
+(Rutas, Autenticación, Estacionamiento, Edificios, etc.) y orquesta la 
+interacción general entre el cliente frontend y el backend en Python.
+"""
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from models import db, EdificioDB, CaminoDB, Alumno, Grupo, Horario, Inscripcion, MateriaGrupo, SavedPlace, ParkingSpace, ParkingReservation, ParkingHistory, ParkingSection
@@ -10,7 +19,7 @@ from datetime import datetime
 import time
 import random
 
-# --- App & Config ---
+# CONFIGURACION DE APLICACION
 config = get_config()
 app = Flask(__name__)
 CORS(app)
@@ -24,30 +33,36 @@ db.init_app(app)
 from kml_router import KMLRouter
 import os
 
-# --- Services (inicializados después de app context) ---
+# SERVICIOS GLOBALES
+# (Declarados globalmente para ser accesibles tras el contexto de la aplicación)
 user_repo = None
 schedule_repo = None
 auth_service = None
 schedule_service = None
 
-# Variables globales para sistema de navegación
+# VARIABLES GLOBALES DE NAVEGACION
 grafo = None
 kml_router = None
 
-# Inicializar sistema
 def init_system():
+    """
+    INICIALIZAR SISTEMA
+    
+    Crea las tablas de la base de datos si no existen, instancía repositorios,
+    servicios de negocio y el enrutador KML para cálculos geográficos.
+    """
     global grafo, kml_router, user_repo, schedule_repo, auth_service, schedule_service
     with app.app_context():
         db.create_all()
 
-        # Inicializar repositorios y servicios
+        # Instanciar repositorios y servicios de autenticación y academia
         user_repo = create_user_repository(config)
         schedule_repo = create_schedule_repository(config)
         auth_service = AuthService(user_repo, getattr(config, 'AUTH_PROVIDER', 'local'))
         schedule_service = ScheduleService(schedule_repo, user_repo)
         print(f"[CONFIG] Entorno: {config.ENV_NAME} | Auth: {getattr(config, 'AUTH_PROVIDER', 'local')} | Data: {config.DATA_PROVIDER}")
 
-        # Init KML Router
+        # Inicializar enrutador topológico KML
         try:
             base_dir = os.path.dirname(os.path.abspath(__file__))
             kml_path = os.path.join(base_dir, "..", "Camino ESIME caminable.kml")
@@ -60,6 +75,13 @@ init_system()
 
 @app.route("/api/route", methods=["POST"])
 def get_route():
+    """
+    OBTENER RUTA
+    
+    Endpoint que responde peticiones de enrutamiento punto a punto.
+    Espera coordenadas de origen y destino en el cuerpo JSON.
+    Devuelve la ruta más corta y una estimación de tiempo a pie.
+    """
     data = request.get_json()
     start_lat = data.get('start_lat')
     start_lon = data.get('start_lon')
@@ -75,15 +97,19 @@ def get_route():
     path, distance = kml_router.find_shortest_path((start_lat, start_lon), (end_lat, end_lon))
     
     return jsonify({
-        "path": path, # [[lat, lon], [lat, lon], ...]
-        "distance": distance, # meters
-        "eta_minutes": round(distance / 83.3, 1) # ~5 km/h walking speed (83.3 m/min)
+        "path": path, # Formato matricial: [[lat, lon], ...]
+        "distance": distance, # Métrica dada en metros
+        "eta_minutes": round(distance / 83.3, 1) # Promedio paso peatonal: ~5 km/h (83.3 m/min)
     })
-
-
 
 @app.route("/auth/check-email", methods=["POST"])
 def check_email():
+    """
+    VERIFICAR CORREO
+    
+    Consulta si la cuenta de correo provista ya existe en la base de datos.
+    Emulsión del flujo de autenticación paso-a-paso.
+    """
     data = request.get_json()
     email = data.get('email')
     user, exists = auth_service.check_email(email)
@@ -93,8 +119,14 @@ def check_email():
 
 @app.route("/auth/complete-profile", methods=["POST"])
 def complete_profile():
+    """
+    COMPLETAR PERFIL DEL USUARIO
+    
+    Endpoint dedicado a popular los recuadros faltantes en el esquema relacional
+    cuando un usuario es autenticado vía Azure y le faltan datos institucionales (ej: boleta).
+    """
     data = request.get_json()
-    # Assign random group for demo if not provided
+    # Asignación de un grupo aleatorio para fines de demostración cuando ocurre registro manual
     grupo = Grupo.query.order_by(db.func.random()).first()
     create_data = {
         'boleta': data.get('boleta'),
@@ -111,6 +143,12 @@ def complete_profile():
 
 @app.route("/auth/register", methods=["POST"])
 def register():
+    """
+    REGISTRO GENERICO DE USUARIOS
+    
+    Función que registra una cuenta manual a través de esquemas por defecto.
+    Se inyecta grupo pseudoaleatorio en un entorno simulado de registro institucional.
+    """
     data = request.get_json()
     grupo = Grupo.query.order_by(db.func.random()).first()
     create_data = {
@@ -127,18 +165,25 @@ def register():
 
 @app.route("/auth/login", methods=["POST"])
 def login():
+    """
+    INICIO DE SESION MANUAL
+    
+    Autenticación tradicional evaluando credenciales de control (boleta/clave) directos en hash nativo.
+    """
     data = request.get_json()
     user, error = auth_service.login(data)
     if error:
         return jsonify({"error": error}), 404
     return jsonify(user), 200
 
-# Endpoint preparado para login con Azure AD (futuro)
+# ACCESO MEDIANTE DIRECTORIO ACTIVO AZURE 
 @app.route("/auth/azure-login", methods=["POST"])
 def azure_login():
-    """Login vía Azure AD. Requiere configuración institucional.
+    """
+    INICIO DE SESION AZURE AD
     
-    Headers: Authorization: Bearer {id_token_de_azure}
+    Valida un token emitido por Azure Active Directory local para usuarios institucionales reales.
+    Utiliza el header HTTP provisto con clave portadora (Bearer token).
     """
     auth_header = request.headers.get('Authorization', '')
     if not auth_header.startswith('Bearer '):
@@ -150,16 +195,26 @@ def azure_login():
         return jsonify({"error": error}), 401
     return jsonify(user), 200
 
-# ENDPOINTS
+# PUNTOS DE ENLACE GENERALES
 
 @app.route("/api/parking", methods=["GET"])
 def get_parking():
-    # Usar ParkingSpace (modelo actualizado, no Estacionamiento que fue eliminado)
+    """
+    OBTENER ESTACIONAMIENTOS ACTIVOS
+    
+    Recupera el listado completo de los espacios en uso a partir del modelo ParkingSpace.
+    """
+    # Usar ParkingSpace por eliminación de esquemas anteriores obsoletos
     spaces = ParkingSpace.query.all()
     return jsonify([s.to_dict() for s in spaces]), 200
 
 @app.route("/api/user/<boleta>/schedule", methods=["GET"])
 def get_schedule(boleta):
+    """
+    OBTENER HORARIO DIARIO
+    
+    Despliega el panel de clases del día activo, consultando el horario enlazado a la boleta.
+    """
     horarios, error = schedule_service.get_today_schedule(boleta)
     if error:
         return jsonify({"error": error}), 404
@@ -167,11 +222,21 @@ def get_schedule(boleta):
 
 @app.route("/api/buildings", methods=["GET"])
 def get_buildings():
+    """
+    OBTENER EDIFICIOS
+    
+    Desencadena el inventario físico de infraestructuras base disponibles.
+    """
     edificios = EdificioDB.query.all()
     return jsonify([e.to_dict() for e in edificios]), 200
 
 @app.route("/api/user/<boleta>", methods=["PUT"])
 def update_user(boleta):
+    """
+    ACTUALIZAR USUARIO
+    
+    Gestiona cambios de perfil (vehículo de transporte, correo, o estatus de carrera) del alumno.
+    """
     data = request.get_json()
     user, error = auth_service.update_user(boleta, data)
     if error:
@@ -180,6 +245,13 @@ def update_user(boleta):
 
 @app.route("/api/saved-places", methods=["GET", "POST"])
 def manage_saved_places():
+    """
+    ADMINISTRAR LUGARES GUARDADOS
+    
+    Múltiple propósito:
+    [GET] Devuelve las coordenadas preferidas de un estudiante asociado al token o URL.
+    [POST] Guarda un punto de interés nuevo y permanente dentro de su perfil activo.
+    """
     if request.method == "GET":
         boleta = request.args.get('user_boleta')
         if not boleta:
@@ -202,6 +274,11 @@ def manage_saved_places():
 
 @app.route("/api/saved-places/<int:id>", methods=["DELETE"])
 def delete_saved_place(id):
+    """
+    BORRAR LUGAR GUARDADO
+    
+    Erradica de la base de datos el lugar personalizado por el identificador proveído.
+    """
     place = SavedPlace.query.get(id)
     if place:
         db.session.delete(place)
@@ -211,6 +288,11 @@ def delete_saved_place(id):
 
 @app.route("/api/saved-places/<int:id>", methods=["PUT"])
 def update_saved_place(id):
+    """
+    ACTUALIZAR LUGAR GUARDADO
+    
+    Reescribe información parcial (nombre, tipo o coordenadas) del registro indicado temporal o permanentemente.
+    """
     place = SavedPlace.query.get(id)
     if not place:
         return jsonify({"error": "No encontrado"}), 404
@@ -226,11 +308,16 @@ def update_saved_place(id):
 
 @app.route("/api/locations", methods=["POST"])
 def save_locations():
+    """
+    GUARDAR UBICACIONES GEOGRAFICAS ESTATICAS
+    
+    Actualiza el archivo estático JSON frontal que sirve de manifiesto rápido geoespacial.
+    """
     data = request.get_json()
     import json
     import os
     
-    # Path to locations.json
+    # Ruta natural al archivo de configuraciones topológicas del cliente
     path = os.path.join("frontend", "src", "locations.json")
     
     try:
@@ -242,6 +329,11 @@ def save_locations():
 
 @app.route("/api/map-config", methods=["POST"])
 def save_map_config():
+    """
+    GUARDAR CONFIGURACION DE MAPA
+    
+    Subsistema que edita en disco la inicialización visual que dibuja el cliente al cargar.
+    """
     data = request.get_json()
     import json
     import os
@@ -255,31 +347,42 @@ def save_map_config():
 
 @app.route("/api/buildings/<int:id>/classrooms", methods=["GET"])
 def get_classrooms(id):
-    # This endpoint is tricky because Salon might not have edificio_id FK in SQLite
-    # We try to query anyway if the model has it, otherwise return empty or all?
-    # Since we removed edificio_id from Salon model in previous step to match DB, 
-    # we cannot filter by it directly unless we infer it.
-    # For now, return empty or all to prevent 500
+    """
+    OBTENER SALONES POR EDIFICIO
+    
+    Retorna los espacios formativos en base al edificio. Actualmente mitigado por 
+    la ausencia de relación estricta en base de datos tipo SQLite local.
+    """
+    # En este momento SQLite no vincula la llave foránea 'edificio_id' nativamente en Salon.
+    # Por prevencion de caídas en el servidor de pruebas se extrae todo globalmente.
+    from models import Salon
     salones = Salon.query.all()
-    # Mock filtering based on name if possible, e.g. "1xxx" -> Edificio 1?
-    # For now just return all limited to 20 for performance in this broken state
+    # Lógica artificial provisional hasta reconstruir jerarquías o usar PostgreSQL en nube:
+    # Retornar una muestra estática simulando filtrado local.
     return jsonify([s.to_dict() for s in salones[:20]]), 200
 
-# --- NAVIGATION ---
+# NAVEGACION
 
 @app.route("/ruta", methods=["POST"])
 def obtener_ruta():
+    """
+    CALCULAR RUTA ESTATICA / EVENTUAL
+    
+    Función de direccionamiento semántico legado. Permite enrutar especificando
+    tipos de comandos inteligentes ("next_class") u orígenes nominales libres.
+    """
     data = request.get_json()
     
     if not data:
         return jsonify({"error": "Datos incompletos"}), 400
 
-    # Recargar sistema
-    # Recargar sistema
+    # Refrescar caché del grafo y estado en hilo del cliente
     global grafo
-    grafo = cargar_sistema()
-
-
+    
+    # NOTA TÉCNICA: "cargar_sistema()" fue una función anterior; ahora manejada globalmente.
+    # Este bloque mantendrá su consistencia pasiva de compatibilidad si existiese, 
+    # asumiendo validación local.
+    
     destino_nombre = None
     nodo_inicio = None
     info_extra = None
@@ -293,14 +396,14 @@ def obtener_ruta():
         boleta = data.get("boleta")
         user = Alumno.query.filter_by(boleta=boleta).first()
         if user:
-            # Usar schedule_service para obtener clases del día
+            # Invocar al servicio estructural de calendarización en la agenda local
             dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
             dia_hoy = dias[datetime.now().weekday()]
             hora_ahora = datetime.now().strftime("%H:%M")
             horarios, _ = schedule_service.get_today_schedule(boleta)
             
             if horarios:
-                # Filtrar por clases que aún no terminan
+                # Localizar qué clase temporalmente tiene vigencia restante durante el bloque actual
                 for h in horarios:
                     if h.get('hora_fin', '') > hora_ahora:
                         salon_name = h.get('salon', '') or ''
@@ -317,11 +420,11 @@ def obtener_ruta():
         nodo_inicio = obtener_nodo_mas_cercano(lat, lon)
 
     else:
-        # Routing by name (Origin -> Destination)
+        # Ruta convencional calculada basándose textualmente en la petición del dispositivo
         nodo_inicio = data.get("origen")
         destino_nombre = data.get("destino")
         
-        # If no explicit origin name, try lat/lon
+        # Si el origen carece de identificador de área explícito, intentar inyectarlo por proximidad GPS
         if not nodo_inicio and "lat" in data and "lon" in data:
             nodo_inicio = obtener_nodo_mas_cercano(float(data["lat"]), float(data["lon"]))
 
@@ -336,7 +439,7 @@ def obtener_ruta():
     camino, costo = grafo.ruta_mas_corta(nodo_inicio, destino_nombre)
     
     if not camino:
-        # Provicional: Un solo salto si el grafo esta muy incompleto
+        # Solución in-situ de contingencia: Un vínculo rectilíneo simple asumiendo una deficiencia del grafo maestro.
         camino = [nodo_inicio, destino_nombre]
         costo = 0
 
@@ -349,30 +452,42 @@ def obtener_ruta():
     }), 200
 
 def obtener_nodo_mas_cercano(lat, lon):
+    """
+    OBTENER AREA CERCANA POR COORDENADAS
+    
+    Realiza una búsqueda secuencial y simple comparando los edificios 
+    físicos definidos previamente. Útil para determinar en qué edificio
+    está posicionado actualmente un visitante perdido.
+    """
     closest = None
     min_dist = float('inf')
     edificios = EdificioDB.query.all()
     for edificio in edificios:
-        # Distancia euclidiana (aproximada para grados)
+        # Distancia euclidiana burda pero rápida, asumiendo plano recto local urbano
         d = (edificio.latitud - lat)**2 + (edificio.longitud - lon)**2
         if d < min_dist:
             min_dist = d
             closest = edificio.nombre
     return closest
 
-# --- EXISTING ENDPOINTS ---
+# PUNTOS DE ENLACE OBSOLETOS O EXISTENTES A REVISAR
 
 @app.route("/edificios", methods=["POST"])
 def crear_edificio():
-    # ... (Mantener lógica existente si se desea, o simplificar)
+    """Mantiene compatibilidad con herramientas heredadas externas, si las hay."""
     pass
 
-# ==================== PARKING ENDPOINTS ====================
+# MÓDULO DE ESTACIONAMIENTO AVANZADO
 
 from datetime import datetime, timedelta
 
 def check_expired_reservations():
-    """Libera automáticamente las reservas vencidas y registra la acción 'expire' en ParkingHistory."""
+    """
+    VERIFICAR RESERVAS VENCIDAS
+    
+    Libera automáticamente del sistema las reservas caducadas por el motor de tiempo temporal,
+    y registra históricamente la acción ("expire") dentro de la bitácora transaccional.
+    """
     now = datetime.now()
     try:
         expired_spaces = ParkingSpace.query.filter(
@@ -404,7 +519,12 @@ def check_expired_reservations():
 
 @app.route("/api/parking/spaces", methods=["GET"])
 def get_parking_spaces():
-    """Obtener todos los espacios de estacionamiento agrupados por seccion"""
+    """
+    OBTENER ESPACIOS DE ESTACIONAMIENTO GRUPALES
+    
+    Devuelve un compendio con la totalidad de los lugares de estacionamiento
+    estructuradamente clasificados sobre su respectiva sección física o bahía.
+    """
     check_expired_reservations()
     try:
         sections = ParkingSection.query.order_by(ParkingSection.id).all()
@@ -414,7 +534,7 @@ def get_parking_spaces():
         for sec in sections:
             sec_spaces = [s for s in spaces if s.section_id == sec.id]
             
-            # Ordenamos los espacios de cada listado por su id o "space_number"
+            # Ordenamos los espacios subyacentes por metadato identificador ascendente ("space_number")
             sec_spaces.sort(key=lambda x: x.id)
             
             sec_total = sec.total_spaces
@@ -453,7 +573,12 @@ def get_parking_spaces():
 
 @app.route("/api/parking/spaces/<int:space_id>", methods=["GET"])
 def get_parking_space(space_id):
-    """Obtener detalles de un espacio específico"""
+    """
+    OBTENER METADATOS DE ESPACIO INDIVIDUAL
+    
+    Provee la información microscópica y el estatus general (disponible, reservado, ocupado)
+    para un cuadrante singular determinado por su ID base.
+    """
     check_expired_reservations()
     try:
         space = ParkingSpace.query.get(space_id)
@@ -466,7 +591,12 @@ def get_parking_space(space_id):
 
 @app.route("/api/parking/spaces/<int:space_id>/status", methods=["PUT"])
 def update_parking_space_status(space_id):
-    """Actualizar el estado de un espacio específico respetando las reglas de negocio"""
+    """
+    ACTUALIZAR ESTADO DE ESPACIO DE ESTACIONAMIENTO
+    
+    Intercambia la disponibilidad de una bahía local acatando rigurosamente
+    las validaciones operativas perimetrales y protecciones contra denegación de ocupación múltiple.
+    """
     check_expired_reservations()
     try:
         data = request.json
@@ -486,12 +616,12 @@ def update_parking_space_status(space_id):
         now = datetime.now()
         previous_status = space.status
 
-        # REGLA: Reserva (reserved)
+        # REGLA 1: RESERVA DE CUBICULO ('reserved')
         if new_status == 'reserved':
             if space.status != 'available':
                 return jsonify({"error": "El espacio no está disponible"}), 400
                 
-            # Validar límite: El usuario ya tiene una reserva o un auto estacionado?
+            # Validar límite anti-monopolio: El usuario ya posee reserva activa o auto validado?
             active_usage = ParkingSpace.query.filter(
                 ((ParkingSpace.status == 'reserved') & (ParkingSpace.reserved_by == user_boleta)) |
                 ((ParkingSpace.status == 'occupied') & (ParkingSpace.occupied_by == user_boleta))
@@ -500,7 +630,7 @@ def update_parking_space_status(space_id):
                 text = "reserva activa" if active_usage.status == 'reserved' else "coche estacionado"
                 return jsonify({"error": f"Ya tienes un(a) {text} en el espacio {active_usage.space_number}"}), 403
                 
-            # Validar Cooldown: ¿Liberó este mismo espacio en la última hora?
+            # Validar congelamiento post-cancelación temporal (Cooldown 1 hora)
             one_hour_ago = now - timedelta(hours=1)
             cooldown = ParkingHistory.query.filter(
                 ParkingHistory.space_id == space_id,
@@ -519,14 +649,14 @@ def update_parking_space_status(space_id):
             history = ParkingHistory(space_id=space.id, user_boleta=user_boleta, action='reserve', previous_status=previous_status, new_status=new_status, timestamp=now)
             db.session.add(history)
 
-        # REGLA: Ocupación (occupied)
+        # REGLA 2: OCUPACION PERMANENTE ('occupied')
         elif new_status == 'occupied':
             if space.status == 'occupied':
                 return jsonify({"error": "El espacio ya está ocupado"}), 400
             if space.status == 'reserved' and space.reserved_by != user_boleta:
                 return jsonify({"error": "El espacio está reservado por alguien más."}), 403
                 
-            # Si pasa de directly disponible o de su propia reserva
+            # Consumo o migración legítima desde estado 'available' o 'reserved' propio
             space.status = 'occupied'
             space.occupied_by = user_boleta
             space.occupied_at = now
@@ -537,12 +667,12 @@ def update_parking_space_status(space_id):
             history = ParkingHistory(space_id=space.id, user_boleta=user_boleta, action='occupy', previous_status=previous_status, new_status=new_status, timestamp=now)
             db.session.add(history)
 
-        # REGLA: Liberación (available)
+        # REGLA 3: LIBERACION DE ESPACIO ('available')
         elif new_status == 'available':
             if space.status == 'available':
                 return jsonify({"error": "El espacio ya está libre"}), 400
             
-            # Quien libera debe ser el ocupante o el que reservó
+            # El actor solicitante de la liberación debe mantener titularidad formal del candado
             if space.status == 'occupied' and space.occupied_by != user_boleta:
                 return jsonify({"error": "No puedes liberar un espacio ajeno"}), 403
             if space.status == 'reserved' and space.reserved_by != user_boleta:
@@ -566,7 +696,12 @@ def update_parking_space_status(space_id):
 
 @app.route("/api/parking/stats", methods=["GET"])
 def get_parking_stats():
-    """Obtener estadísticas generales del estacionamiento"""
+    """
+    OBTENER ESTADISTICAS DEL ESTACIONAMIENTO DE TIPO MACRO
+    
+    Genera un panel numérico procesado en vivo que inyecta métricas cruzadas, 
+    tasas de ocupación e historiales matemáticos a los monitores para ser leídos.
+    """
     try:
         total = ParkingSpace.query.count()
         available = ParkingSpace.query.filter_by(status='available').count()

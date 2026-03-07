@@ -1,13 +1,15 @@
 /**
- * API Service — Capa de comunicación con el backend.
+ * ARCHIVO: services/api.js
  * 
- * Centraliza todas las llamadas HTTP al backend Flask.
- * Compatible con modo local (boleta) y futuro modo Azure AD.
+ * SERVICIO DE INTERFAZ DE PROGRAMACION DE APLICACIONES (API)
+ * 
+ * Centraliza todas las llamadas HTTP al backend de comunicación.
+ * Compatible activamente con modo local (boleta) y modo Azure AD.
  */
 
 const API_BASE = "http://localhost:5001";
 
-// --- Helpers ---
+// SECCION DE FUNCIONES AUXILIARES (HELPERS)
 
 async function handleResponse(res) {
     const data = await res.json();
@@ -24,7 +26,7 @@ function headers(extra = {}) {
     };
 }
 
-// --- Auth ---
+// SECCION DE AUTENTICACION
 
 export async function login(boleta) {
     const res = await fetch(`${API_BASE}/auth/login`, {
@@ -62,7 +64,7 @@ export async function register(data) {
     return handleResponse(res);
 }
 
-// --- User ---
+// SECCION DE MANEJO DE PERFIL (USUARIOS)
 
 export async function updateUser(boleta, data) {
     const res = await fetch(`${API_BASE}/api/user/${boleta}`, {
@@ -78,7 +80,7 @@ export async function getSchedule(boleta) {
     return handleResponse(res);
 }
 
-// --- Map Data ---
+// SECCION DE RENDERIZADO CARTOGRAFICO (DATOS DE MAPA)
 
 export async function getBuildings() {
     const res = await fetch(`${API_BASE}/api/buildings`);
@@ -108,7 +110,7 @@ export async function getWalkingRoute(data) {
     return handleResponse(res);
 }
 
-// --- Saved Places ---
+// SECCION DE GESTION DE LUGARES FAVORITOS GUARDADOS
 
 export async function getSavedPlaces(boleta) {
     const res = await fetch(`${API_BASE}/api/saved-places?user_boleta=${boleta}`);

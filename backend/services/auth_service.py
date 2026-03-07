@@ -1,54 +1,66 @@
 """
-AuthService — Lógica de autenticación desacoplada.
+ARCHIVO: services/auth_service.py
 
-Soporta dos modos:
-- local:  Autenticación por número de boleta (modo actual)
-- azure:  Autenticación vía Azure AD con auto-provisioning (modo futuro)
+SERVICIO DE AUTENTICACION
 
-El servicio no conoce HTTP ni Flask; solo recibe datos y retorna resultados.
+Lógica de autenticación desacoplada del controlador web.
+
+Soporta dos modos conceptuales:
+- local:  Autenticación por número de boleta local (modo actual aislado)
+- azure:  Autenticación vía Azure AD con auto-provisionamiento (modo institucional futuro)
+
+El servicio es ajeno a HTTP o protocolos Flask; puramente algorítmico y retorna tuplas de respuesta.
 """
 from datetime import datetime
 
 
 class AuthService:
-    """Servicio de autenticación unificado."""
+    """
+    CLASE DE SERVICIO DE AUTENTICACION UNIFICADO
+    """
 
     def __init__(self, user_repo, auth_provider='local'):
         """
-        Args:
-            user_repo: Instancia de UserRepository
-            auth_provider: 'local' o 'azure'
+        CONVENCION DE INICIALIZACION
+        
+        Argumentos:
+            user_repo: Instancia funcional del repositorio ligado (SQLite o Base SQL)
+            auth_provider: Referencia modal local o azure direct.
         """
         self.user_repo = user_repo
         self.auth_provider = auth_provider
 
     def login(self, credentials):
-        """Login unificado. Retorna (user_dict, error_string).
+        """
+        INICIO DE SESION UNIFICADO
+        
+        Mesa de partes determinando si deriva a protocolo nativo local o Azure
+        usando las directivas del inyector de dependencias. Contiene retorno bivariado.
 
-        Args:
-            credentials: dict con 'boleta' (local) o 'azure_token' (azure)
+        Argumentos:
+            credentials: Diccionario mapeado conteniendo esquema de 'boleta' o cadena 'azure_token'
 
-        Returns:
-            tuple: (user_dict or None, error_message or None)
+        Retorna:
+            tupla binaria: (Entidad del usuario o Nulo, Argumento de error impreso o Nulo)
         """
         if self.auth_provider == 'azure':
             return self._login_azure(credentials)
         return self._login_local(credentials)
 
     def check_email(self, email):
-        """Verificar si un correo ya está registrado.
-
-        Returns:
-            tuple: (user_dict or None, exists: bool)
+        """
+        VERIFICAR EXISTENCIA DE CORREO
+        
+        Paso temprano de autenticación simulada, confirmando unicidad del identificador.
         """
         user = self.user_repo.find_by_email(email)
         return user, user is not None
 
     def register(self, data):
-        """Registrar nuevo alumno.
-
-        Returns:
-            tuple: (user_dict or None, error_message or None)
+        """
+        REGISTRAR ALUMNO NUEVO MANUALMENTE
+        
+        Inscribe al residente local enviando los metadatos necesarios al orm base.
         """
         boleta = data.get('boleta')
         if not boleta:
@@ -61,10 +73,11 @@ class AuthService:
         return user, None
 
     def complete_profile(self, data):
-        """Completar perfil de usuario (flujo de registro por email).
-
-        Returns:
-            tuple: (user_dict or None, error_message or None)
+        """
+        COMPLETAR PERFIL AUSENTE
+        
+        Requisita campos del perfil del usuario (específicamente durante el flujo
+        de aprovisionamiento externo automatizado como en entornos de Active Directory).
         """
         boleta = data.get('boleta')
         if not boleta:
@@ -77,20 +90,24 @@ class AuthService:
         return user, None
 
     def update_user(self, boleta, data):
-        """Actualizar datos del alumno.
-
-        Returns:
-            tuple: (user_dict or None, error_message or None)
+        """
+        ACTUALIZAR DATOS DEL ALUMNO
+        
+        Modifica preferencias o información ligada a perfil. Desencadena salvaguarda base.
         """
         user = self.user_repo.update(boleta, data)
         if not user:
             return None, "Usuario no encontrado"
         return user, None
 
-    # --- Implementaciones de login ---
+    # SECCION DE IMPLEMENTACIONES DE LOGIN
 
     def _login_local(self, credentials):
-        """Login por boleta (modo actual)."""
+        """
+        EJECUCION DE LOGIN LOCAL
+        
+        Verifica un acceso tradicional en sistemas que carezcan de directorio activo corporativo.
+        """
         boleta = credentials.get('boleta')
         if not boleta:
             return None, "La boleta es requerida"
@@ -105,14 +122,17 @@ class AuthService:
         return user, None
 
     def _login_azure(self, credentials):
-        """Login por token de Azure AD (modo institucional futuro).
+        """
+        EJECUCION DE LOGIN EN SERVIDOR AZURE
+        
+        Suscripción cruzada decodificando el token de Azure AD (modo integrado opcional).
 
-        Flujo:
-        1. Recibe ID token de Azure AD desde el frontend
-        2. Valida el token contra Azure AD
-        3. Busca al usuario por email o institutional_id
-        4. Si no existe, auto-provisiona el usuario
-        5. Retorna los datos del usuario
+        Flujo estructural:
+        1. Recibe ID token de Azure AD desde las cabeceras pasadas por el front-end angular/react
+        2. Certifica y cruza el token contra firmas JWKS externas de Microsoft
+        3. Identifica al individuo buscando por correo matriz o identificador Azure remoto
+        4. Ejerce auto-aprovisionamiento forzado local si no lo logra localizar
+        5. Consolida metadatos del usuario persistente devolviéndolos.
         """
         token = credentials.get('azure_token')
         if not token:
@@ -154,21 +174,22 @@ class AuthService:
         return user, None
 
     def _validate_azure_token(self, token):
-        """Validar JWT de Azure AD.
-
-        NOTA: Esta es una implementación placeholder.
-        La escuela debe configurar AZURE_TENANT_ID y AZURE_CLIENT_ID
-        para activar la validación real.
-
-        En producción, este método:
-        1. Descarga las claves públicas de Azure AD (JWKS)
-        2. Verifica la firma del JWT
-        3. Valida issuer, audience, y expiración
-        4. Retorna los claims del token
-
-        Requiere: pip install PyJWT cryptography requests
         """
-        # Placeholder: no valida nada en modo local
+        VALIDAR TOKEN WEB JSON (JWT)
+        
+        Valida que un ticket de autenticación Microsoft posea firmas e identificadores fidedignos.
+        (Actualmente actuando como plantilla simulada de marcador de posición)
+        
+        La escuela deberá instanciar e inyectar sus llaves públicas en variables
+        AZURE_TENANT_ID y AZURE_CLIENT_ID para el pase completo hacia la nube.
+        
+        En producción real en despliegues con red esto deberá:
+        1. Descargar las claves públicas rotativas de Azure AD (JWKS).
+        2. Ejecutar prueba algorítmica de encriptamiento base.
+        3. Medir fecha de expiración y alcance de dominios autorizados.
+        4. Vomitar las notificaciones (claims) empaquetadas útiles.
+        """
+        # Elemento reservado. Sin implementación funcional forzada.
         # La implementación real sería:
         #
         # import jwt

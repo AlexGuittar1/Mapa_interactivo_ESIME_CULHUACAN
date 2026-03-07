@@ -54,7 +54,7 @@ const Dashboard = () => {
         try {
             const updatedUser = await updateUser(user.boleta, { vehiculo: newVehicle });
             setUser(updatedUser);
-            localStorage.setItem('user', JSON.stringify(updatedUser)); // Update local storage
+            localStorage.setItem('user', JSON.stringify(updatedUser)); // ACTUALIZA EL ALMACENAMIENTO LOCAL
         } catch (err) {
             alert("No se pudo actualizar el transporte.");
         } finally {
@@ -66,17 +66,17 @@ const Dashboard = () => {
 
     return (
         <div className="h-screen bg-gray-100 flex flex-col font-sans overflow-hidden">
-            {/* --- HEADER --- */}
+            {/* --- ENCABEZADO --- */}
             <div className="bg-[#8B0000] px-4 pt-10 pb-6 lg:pb-8 flex justify-between items-center rounded-b-[2rem] lg:rounded-b-[3rem] shadow-2xl relative z-10 border-b border-red-900/30 shrink-0">
                 <div className="flex items-center gap-3 lg:ml-8">
-                    {/* Logo/Icon on the left */}
+                    {/* LOGOTIPO / ICONO A LA IZQUIERDA */}
                     <div className="w-12 h-12 lg:w-16 lg:h-16 relative">
                         <img src={esimeLogo} alt="Logo" className="w-full h-full object-contain drop-shadow-lg" />
                     </div>
                     <h1 className="text-white font-bold text-lg lg:text-2xl tracking-wide">MI PERFIL</h1>
                 </div>
                 <div className="flex items-center gap-3 lg:mr-8 relative">
-                    {/* Bell Icon */}
+                    {/* ICONO DE CAMPANA DE NOTIFICACIONES */}
                     <button
                         onClick={() => setShowNotifications(!showNotifications)}
                         className="bg-[#b91c1c] text-white p-2.5 lg:p-3 rounded-full shadow-md hover:bg-red-700 transition-colors border border-white/10 relative flex justify-center items-center"
@@ -89,7 +89,7 @@ const Dashboard = () => {
                         )}
                     </button>
 
-                    {/* Notifications Dropdown */}
+                    {/* MENU DESPLEGABLE DE NOTIFICACIONES */}
                     {showNotifications && (
                         <div className="absolute top-14 right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-slide-down origin-top-right">
                             <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
@@ -130,10 +130,10 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* --- MAIN CONTENT (White Card) --- */}
+            {/* --- CONTENIDO PRINCIPAL (TARJETA BLANCA) --- */}
             <div className="flex-1 bg-white mx-0 sm:mx-4 lg:mx-auto -mt-6 lg:-mt-6 lg:mb-6 rounded-t-[2.5rem] sm:rounded-[2.5rem] pt-12 lg:pt-12 px-6 lg:px-10 pb-6 shadow-2xl z-0 overflow-hidden flex flex-col lg:flex-row max-w-6xl w-full self-center mb-0 sm:mb-4 min-h-0 gap-8 h-full">
 
-                {/* --- COLUMN 1: User Info & Transport --- */}
+                {/* --- COLUMNA 1: INFORMACION DE USUARIO Y TRANSPORTE --- */}
                 <div className="flex flex-col items-center lg:items-start lg:w-1/3 shrink-0 lg:h-full lg:overflow-y-auto custom-scrollbar lg:pr-6">
                     <div className="w-24 h-24 lg:w-32 lg:h-32 bg-[#8B0000] rounded-full flex items-center justify-center border-4 border-gray-100 mb-4 shadow-xl">
                         <span className="text-4xl lg:text-5xl text-white font-black">{user.nombre.charAt(0)}</span>
@@ -180,7 +180,7 @@ const Dashboard = () => {
                         </div>
                     </div>
 
-                    {/* Logout Button (Desktop shows inside left column, Mobile at bottom later) */}
+                    {/* BOTON DE CERRAR SESION (ESCRITORIO: COLUMNA IZQUIERDA, MOVIL: ABAJO) */}
                     <div className="hidden lg:block w-full mt-6 pt-6 border-t border-gray-100 shrink-0">
                         <button
                             onClick={() => {
@@ -195,7 +195,7 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* --- COLUMN 2: Schedule Section --- */}
+                {/* --- COLUMNA 2: SECCION DE HORARIO ESCOLAR --- */}
                 <div className="flex-1 flex flex-col min-h-0 w-full h-full lg:border-l lg:border-gray-100 lg:pl-8">
                     <div className="flex items-center gap-2 mb-4 shrink-0">
                         <div className="w-1.5 h-5 lg:h-6 bg-[#8B0000] rounded-full"></div>
@@ -204,7 +204,7 @@ const Dashboard = () => {
                         </h3>
                     </div>
 
-                    {/* Scrollable List */}
+                    {/* LISTA DE ELEMENTOS DESPLAZABLE */}
                     <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-4 pr-2 lg:pr-4 custom-scrollbar pb-4 block">
                         {loading ? (
                             <div className="flex justify-center p-8">
@@ -228,17 +228,17 @@ const Dashboard = () => {
 
                                 return sortedSchedule.map((clase, idx) => {
                                     const start = parseTime(clase.hora_inicio);
-                                    // Asumiendo 1h 30m si hora_fin viniera vacía o no existe, de lo contrario lo tomamos real
+                                    // ASUMIENDO 1H 30M SI HORA_FIN VINIERA VACIA O NO EXISTE, DE LO CONTRARIO LO TOMAMOS REAL
                                     const end = clase.hora_fin ? parseTime(clase.hora_fin) : new Date(start.getTime() + 90 * 60000);
 
                                     let statusClasses = "border-gray-100 shadow-sm hover:shadow-md hover:border-red-100";
                                     let badge = null;
 
                                     if (currentTime > end) {
-                                        // Finalizada
+                                        // FINALIZADA
                                         statusClasses = "opacity-50 border-gray-100";
                                     } else if (currentTime >= start && currentTime <= end) {
-                                        // En curso
+                                        // EN CURSO
                                         statusClasses = "border-green-500 border-2 shadow-md relative";
                                         badge = (
                                             <span className="absolute -top-2 left-6 bg-green-500 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full shadow-sm tracking-wider z-10">
@@ -272,7 +272,7 @@ const Dashboard = () => {
                         )}
                     </div>
 
-                    {/* Logout Button (Mobile shows at bottom of Column 2) */}
+                    {/* BOTON DE CERRAR SESION (MOVIL: FINAL DE COLUMNA 2) */}
                     <div className="lg:hidden mt-4 pt-4 border-t border-gray-100 shrink-0">
                         <button
                             onClick={() => {

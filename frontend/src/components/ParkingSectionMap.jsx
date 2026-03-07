@@ -1,3 +1,6 @@
+// ARCHIVO: src/components/ParkingSectionMap.jsx
+// COMPONENTE DE PLANO 2D PARA SECCION DE ESTACIONAMIENTO
+
 import React from 'react';
 import { MapIcon } from 'lucide-react';
 
@@ -6,7 +9,7 @@ const ParkingSectionMap = ({ section }) => {
 
     return (
         <div className="w-full h-full min-h-[300px] bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative">
-            {/* Header del Mapa */}
+            {/* ENCABEZADO ESTATICO DEL MAPA DE CAJONES */}
             <div className="bg-gray-50 border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-100 rounded-lg">
@@ -22,7 +25,7 @@ const ParkingSectionMap = ({ section }) => {
                 </div>
             </div>
 
-            {/* Contenedor Gráfico (Viewport) */}
+            {/* CONTENEDOR GRAFICO ACTIVO (VIEWPORT DE PLANO) */}
             <div className="flex-1 w-full h-full relative bg-[#f8fafc] flex items-center justify-center p-6">
 
                 {section.map_image_url ? (
@@ -32,7 +35,7 @@ const ParkingSectionMap = ({ section }) => {
                         className="w-full h-full object-contain rounded-xl shadow-sm"
                     />
                 ) : (
-                    /* EMPTY STATE ELEGANT */
+                    /* ESTADO VACIO ELEGANTE (SIN IMAGEN SUBIDA PREVIAMENTE) */
                     <div className="flex flex-col items-center justify-center text-center max-w-xs animate-pulse-slow">
                         <div className="w-24 h-24 mb-4 rounded-full bg-blue-50 flex items-center justify-center">
                             <MapIcon className="w-10 h-10 text-blue-300" strokeWidth={1.5} />

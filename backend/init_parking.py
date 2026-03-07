@@ -1,36 +1,40 @@
 #!/usr/bin/env python3
 """
-Script para inicializar los 90 espacios de estacionamiento de profesores.
-Genera espacios en 3 secciones (A, B, C) con coordenadas y distancias calculadas.
-"""
+ARCHIVO: init_parking.py
 
+SCRIPT DE INICIALIZACION DE ESTACIONAMIENTOS
+
+Programa para rellenar de manera transaccional o forzar la inicializacion de
+espacios de estacionamiento de profesores (Secciones A, B, C) calculando
+teoricamente distancias contra recintos educativos primarios.
+"""
 from app import app, db
 from models import ParkingSpace
 import math
 
-# Coordenadas de referencia de los edificios principales
+# COORDENADAS DE REFERENCIA DE EDIFICIOS
 BUILDINGS = {
-    "building_1": (19.329712, -99.112289),  # Edificio 1 / Cafetería
-    "building_2": (19.330421, -99.111893),  # Edificio 2
-    "building_3": (19.329710, -99.111490),  # Edificio 3
+    "building_1": (19.329712, -99.112289),  # Referencia Edificio 1 / Cafeteria
+    "building_2": (19.330421, -99.111893),  # Referencia Edificio 2
+    "building_3": (19.329710, -99.111490),  # Referencia Edificio 3
 }
 
-# Coordenadas base para cada sección del estacionamiento
+# COORDENADAS BASE PARA SECCIONES LOTE
 PARKING_SECTIONS = {
     "A": {
-        "base_lat": 19.329500,  # Cerca de Edificio 3
+        "base_lat": 19.329500,  # Ubicación cardinal cercania Edificio 3
         "base_lon": -99.111400,
-        "lat_offset": 0.000015,  # ~1.5m entre filas
-        "lon_offset": 0.000025,  # ~2.5m entre espacios
+        "lat_offset": 0.000015,  # Separación aproximada 1.5 metros longitudinal
+        "lon_offset": 0.000025,  # Separación inter-vehicular 2.5 metros
     },
     "B": {
-        "base_lat": 19.330300,  # Cerca de Edificio 2
+        "base_lat": 19.330300,  # Ubicación periférica cercania Edificio 2
         "base_lon": -99.111700,
         "lat_offset": 0.000015,
         "lon_offset": 0.000025,
     },
     "C": {
-        "base_lat": 19.329600,  # Cerca de Cafetería/Edificio 1
+        "base_lat": 19.329600,  # Ubicación limítrofe Cafeteria y Edificio 1
         "base_lon": -99.112100,
         "lat_offset": 0.000015,
         "lon_offset": 0.000025,
@@ -38,8 +42,13 @@ PARKING_SECTIONS = {
 }
 
 def haversine_distance(coord1, coord2):
-    """Calcula la distancia en metros entre dos coordenadas usando la fórmula de Haversine"""
-    R = 6371000  # Radio de la Tierra en metros
+    """
+    CALCULO DE DISTANCIA HAVERSINE
+    
+    Mide y devuelve la longitud euclidiana ajustada entre dos pares asimétricos calculando 
+    el radio terrestre perimetral como pivote (fórmula esférica).
+    """
+    R = 6371000  # Proporción referencial del radio de la tierra expresado en metros
     lat1, lon1 = math.radians(coord1[0]), math.radians(coord1[1])
     lat2, lon2 = math.radians(coord2[0]), math.radians(coord2[1])
 
@@ -52,49 +61,53 @@ def haversine_distance(coord1, coord2):
     return R * c
 
 def generate_parking_spaces():
-    """Genera los 90 espacios de estacionamiento"""
+    """
+    GENERADOR MASIVO DE ESPACIOS CUBICULARES
+    
+    Produce la inserción iterada de los casilleros vehiculares asumiendo topologías físicas estimadas.
+    """
     
     with app.app_context():
-        # Verificar si ya existen espacios
+        # Confirmar o abortar solapamiento base
         existing_count = ParkingSpace.query.count()
         if existing_count > 0:
-            print(f"⚠️  Ya existen {existing_count} espacios en la base de datos.")
-            response = input("¿Deseas eliminarlos y regenerar? (s/n): ")
+            print(f"ADVERTENCIA: Ya existen {existing_count} espacios en la base de datos local.")
+            response = input("¿Deseas purgarlos y regenerar la coleccion? (s/n): ")
             if response.lower() != 's':
-                print("Operación cancelada.")
+                print("Operando de purga omitida por decision del usuario. Abortando.")
                 return
             
-            # Eliminar espacios existentes
+            # Purgatoria de tablas locales
             ParkingSpace.query.delete()
             db.session.commit()
-            print("✅ Espacios existentes eliminados.")
+            print("Purga confirmada. Espacios pre-existentes eliminados radicalmente.")
         
         spaces_created = 0
         
-        # Generar 30 espacios por sección
+        # Generar lotes secuenciales
         for section, config in PARKING_SECTIONS.items():
-            print(f"\n🅿️  Generando sección {section}...")
+            print(f"\nGenerando la super seccion estructural {section} en memoria...")
             
-            rows = 6  # 6 filas
-            spaces_per_row = 5  # 5 espacios por fila = 30 espacios por sección
+            rows = 6  # Limitante máximo dictaminado a 6 filas frontales
+            spaces_per_row = 5  # Matriz resultante 6 x 5 configurada nominalmente
             
             for row in range(rows):
                 for pos in range(spaces_per_row):
-                    # Calcular número de espacio (1-30 por sección)
+                    # Acumular o procesar indice de espacio posicional escalar
                     space_num = row * spaces_per_row + pos + 1
                     space_number = f"{section}-{space_num:02d}"
                     
-                    # Calcular coordenadas
+                    # Interpolar matriz topológica de geo-coordenadas
                     lat = config["base_lat"] + (row * config["lat_offset"])
                     lon = config["base_lon"] + (pos * config["lon_offset"])
                     
-                    # Calcular distancias a cada edificio
+                    # Trazar metadatos pre-calculados al conjunto civil edilicio
                     space_coords = (lat, lon)
                     dist_b1 = haversine_distance(space_coords, BUILDINGS["building_1"])
                     dist_b2 = haversine_distance(space_coords, BUILDINGS["building_2"])
                     dist_b3 = haversine_distance(space_coords, BUILDINGS["building_3"])
                     
-                    # Crear espacio
+                    # Generar abstraccion persistente en la clase generica ParkingSpace
                     space = ParkingSpace(
                         space_number=space_number,
                         section=section,
@@ -112,31 +125,31 @@ def generate_parking_spaces():
                     spaces_created += 1
                     
                     if space_num % 10 == 0:
-                        print(f"  ✓ Creados {space_num}/30 espacios en sección {section}")
+                        print(f"  > Exito nominal iterando {space_num}/30 cuadriculas en subseccion de trabajo local {section}")
         
-        # Guardar en base de datos
+        # Aplicacion e insercion persistente sobre disco relacional
         db.session.commit()
         
-        print(f"\n✅ ¡Completado! Se crearon {spaces_created} espacios de estacionamiento.")
-        print("\n📊 Resumen por sección:")
+        print(f"\nReporte final: Se volcaron exitosamente un acumulado de {spaces_created} registros dimensionales de aparcamiento.")
+        print("\nRESUMEN NUMERICO ESQUEMATIZADO POR SECCIONAL:")
         
         for section in ["A", "B", "C"]:
             count = ParkingSpace.query.filter_by(section=section).count()
-            print(f"  Sección {section}: {count} espacios")
+            print(f"  Dominio {section}: {count} casilleros localizados")
         
-        # Mostrar algunos ejemplos
-        print("\n📝 Ejemplos de espacios creados:")
+        # Emitir rastreo preliminar de control
+        print("\nEJEMPLOS INFORMATIVOS VOLCADOS EN CAPA DB:")
         examples = ParkingSpace.query.filter(
             ParkingSpace.space_number.in_(['A-01', 'A-15', 'B-01', 'B-15', 'C-01', 'C-15'])
         ).all()
         
         for space in examples:
             print(f"  {space.space_number}: ({space.lat:.6f}, {space.lon:.6f}) - "
-                  f"Edificio 1: {space.distance_to_building_1:.0f}m, "
-                  f"Edificio 2: {space.distance_to_building_2:.0f}m, "
-                  f"Edificio 3: {space.distance_to_building_3:.0f}m")
+                  f"EDIF. 1: {space.distance_to_building_1:.0f}m, "
+                  f"EDIF. 2: {space.distance_to_building_2:.0f}m, "
+                  f"EDIF. 3: {space.distance_to_building_3:.0f}m")
 
 if __name__ == "__main__":
-    print("🚗 Inicializador de Espacios de Estacionamiento")
+    print("INICIALIZADOR FISICO METRICO - APARCAMIENTOS DOCENTES EN GLOBO TERRITORIAL")
     print("=" * 50)
     generate_parking_spaces()

@@ -1,3 +1,6 @@
+// ARCHIVO: src/components/SavedPlacesSheet.jsx
+// COMPONENTE VISUAL DE LUGARES GUARDADOS
+
 import React, { useState, useEffect } from 'react';
 import { X, Bookmark, Edit, Plus, User, Clock, MapPin, Trash2, Heart, Check } from 'lucide-react';
 import { getSavedPlaces, savePlace, deletePlace, updatePlace } from '../services/api';
@@ -5,8 +8,8 @@ import keyPoints from '../data/key_points.json';
 
 const SavedPlacesSheet = ({ onClose }) => {
     const [savedPlaces, setSavedPlaces] = useState([]);
-    const [isAdding, setIsAdding] = useState(false); // To toggle "Add Places" view
-    const [allBuildings, setAllBuildings] = useState([]); // List of system buildings to Favorite
+    const [isAdding, setIsAdding] = useState(false); // ALTERNADOR DE VISTA "AGREGAR LUGARES"
+    const [allBuildings, setAllBuildings] = useState([]); // LISTADO DE EDIFICIOS DEL SISTEMA A SELECCIONAR RECIPROCOS
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
     const [editingId, setEditingId] = useState(null);
@@ -18,7 +21,7 @@ const SavedPlacesSheet = ({ onClose }) => {
             const parsedUser = JSON.parse(storedUser);
             setUser(parsedUser);
             loadSavedPlaces(parsedUser.boleta);
-            setAllBuildings(keyPoints); // Use local JSON data
+            setAllBuildings(keyPoints); // UTILIZA LA DATA PRECARGADA DE ARCHIVO JSON LOCAL
         }
     }, []);
 
@@ -66,7 +69,7 @@ const SavedPlacesSheet = ({ onClose }) => {
 
     const handleAddFavorite = async (building) => {
         if (!user) return;
-        // Check if already saved
+        // COMPROBACION DE DUPLICIDAD PREVIA AL ALMACENAJE
         if (savedPlaces.some(p => p.name === building.name)) {
             alert("Ya está guardado");
             return;
@@ -81,7 +84,7 @@ const SavedPlacesSheet = ({ onClose }) => {
                 type: 'favorite'
             });
             setSavedPlaces(prev => [...prev, newPlace]);
-            setIsAdding(false); // Go back to list
+            setIsAdding(false); // RETORNO FORZADO A LA LISTA TRAS ADICION
         } catch (error) {
             console.error("Error adding favorite:", error);
         }
@@ -95,9 +98,9 @@ const SavedPlacesSheet = ({ onClose }) => {
     return (
         <div className="fixed inset-x-0 bottom-0 z-50 flex flex-col h-[85vh] transition-transform duration-300 ease-in-out transform translate-y-0 text-gray-800 font-sans shadow-2xl rounded-t-[32px] overflow-hidden">
 
-            {/* Header Section - Red Gradient */}
+            {/* SECCION DE ENCABEZADO MATRIZ - FONDO ROJO */}
             <div className="bg-[#b91c1c] p-6 text-white shrink-0 relative">
-                {/* Close Button */}
+                {/* BOTON ESTANDARIZADO DE CERRADO */}
                 <button
                     onClick={onClose}
                     className="absolute top-6 right-6 p-1.5 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
@@ -138,11 +141,11 @@ const SavedPlacesSheet = ({ onClose }) => {
                 </div>
             </div>
 
-            {/* Body Section */}
+            {/* SECCION CENTRAL O CUERPO DE HOJA DE RESULTADOS */}
             <div className="flex-1 bg-white overflow-y-auto px-0 pt-4 pb-24">
 
                 {isAdding ? (
-                    // VIEW: List of all system buildings to add
+                    // VISTA: LISTA MAESTRA DE EDIFICIOS DEL SISTEMA PARA AGREGADO RAPIDO
                     <div className="px-4">
                         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4 px-2">Lugares Disponibles</h3>
                         <div className="space-y-2">
@@ -165,7 +168,7 @@ const SavedPlacesSheet = ({ onClose }) => {
                         </div>
                     </div>
                 ) : (
-                    // VIEW: Saved Places List
+                    // VISTA: IMPRESION DE LUGARES YA GUARDADOS PREVIAMENTE
                     <>
                         {savedPlaces.length === 0 && !loading && (
                             <div className="text-center py-10 px-6 opacity-60">
