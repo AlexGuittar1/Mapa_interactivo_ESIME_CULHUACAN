@@ -104,3 +104,5 @@
 127.0.0.1 - - [09/Mar/2026 00:31:06] "GET /api/parking/spaces HTTP/1.1" 200 -
 127.0.0.1 - - [09/Mar/2026 00:31:16] "GET /api/parking/spaces HTTP/1.1" 200 -
 127.0.0.1 - - [09/Mar/2026 00:31:26] "GET /api/parking/spaces HTTP/1.1" 200 -
+127.0.0.1 - - [09/Mar/2026 00:31:36] "GET /api/parking/spaces HTTP/1.1" 200 -
+127.0.0.1 - - [09/Mar/2026 00:31:46] "GET /api/parking/spaces HTTP/1.1" 200 -
