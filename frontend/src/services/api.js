@@ -7,7 +7,9 @@
  * Compatible activamente con modo local (boleta) y modo Azure AD.
  */
 
-const API_BASE = "http://localhost:5001";
+const API_BASE = import.meta.env.PROD
+    ? "https://navcamp-backend.onrender.com"
+    : "http://localhost:5001";
 
 // SECCION DE FUNCIONES AUXILIARES (HELPERS)
 
