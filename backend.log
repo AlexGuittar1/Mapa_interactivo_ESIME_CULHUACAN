@@ -94,3 +94,13 @@
 127.0.0.1 - - [08/Mar/2026 21:45:20] "GET /api/parking HTTP/1.1" 200 -
 127.0.0.1 - - [09/Mar/2026 00:17:57] "OPTIONS /api/route HTTP/1.1" 200 -
 127.0.0.1 - - [09/Mar/2026 00:17:57] "POST /api/route HTTP/1.1" 200 -
+127.0.0.1 - - [09/Mar/2026 00:30:47] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Mar/2026 00:30:47] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Mar/2026 00:30:47] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Mar/2026 00:30:47] "GET /api/parking HTTP/1.1" 200 -
+127.0.0.1 - - [09/Mar/2026 00:30:54] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Mar/2026 00:30:54] "GET /api/saved-places?user_boleta=2025350215 HTTP/1.1" 200 -
+127.0.0.1 - - [09/Mar/2026 00:31:06] "GET /api/parking/spaces HTTP/1.1" 200 -
+127.0.0.1 - - [09/Mar/2026 00:31:06] "GET /api/parking/spaces HTTP/1.1" 200 -
+127.0.0.1 - - [09/Mar/2026 00:31:16] "GET /api/parking/spaces HTTP/1.1" 200 -
+127.0.0.1 - - [09/Mar/2026 00:31:26] "GET /api/parking/spaces HTTP/1.1" 200 -
