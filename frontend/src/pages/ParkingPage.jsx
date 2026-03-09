@@ -86,7 +86,7 @@ const ParkingPage = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const fetchParkingData = async () => {
+    const fetchParkingData = async (retries = 3) => {
         try {
             const res = await fetch(`${API_URL}/api/parking/spaces`);
             const data = await res.json();
@@ -100,7 +100,12 @@ const ParkingPage = () => {
             setLoading(false);
         } catch (error) {
             console.error('Error fetching parking data:', error);
-            setLoading(false);
+            if (retries > 0) {
+                console.log(`Reintentando... (${retries} intentos restantes)`);
+                setTimeout(() => fetchParkingData(retries - 1), 3000);
+            } else {
+                setLoading(false);
+            }
         }
     };
 
