@@ -40,7 +40,9 @@ const ParkingPage = () => {
     const [expiringWarningPrompt, setExpiringWarningPrompt] = useState(null);
     const [user, setUser] = useState(null);
 
-    const API_URL = 'http://localhost:5001';
+    const API_URL = import.meta.env.PROD
+        ? "https://navcamp-backend.onrender.com"
+        : "http://localhost:5001";
 
     // CONFIGURACION GPS GLOBAL
     const PARKING_CENTER = { lat: 19.329500, lng: -99.111400 };
