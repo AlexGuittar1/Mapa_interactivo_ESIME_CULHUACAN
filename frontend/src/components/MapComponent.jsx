@@ -109,16 +109,32 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
     const [activeTab, setActiveTab] = useState('explorar');
     const [parkedCar, setParkedCar] = useState(null);
 
-    // CARGAR LUGAR DE ESTACIONAMIENTO PREVIO DESDE ALMACENAJE LOCAL GPS
+    // CARGAR Y ACTUALIZAR MARCADOR DE COCHE DESDE LOCALSTORAGE (POLLING)
+    // Se actualiza cada 2 segundos para detectar cambios desde ParkingPage
     useEffect(() => {
-        const savedCar = localStorage.getItem("mi_coche_gps");
-        if (savedCar) {
-            try {
-                setParkedCar(JSON.parse(savedCar));
-            } catch (e) {
-                console.error("Error al cargar coche GPS:", e);
+        const loadParkedCar = () => {
+            const savedCar = localStorage.getItem("mi_coche_gps");
+            if (savedCar) {
+                try {
+                    const parsed = JSON.parse(savedCar);
+                    setParkedCar(prev => {
+                        // Solo actualizar si los datos cambiaron
+                        if (!prev || prev.lat !== parsed.lat || prev.lng !== parsed.lng || prev.spaceId !== parsed.spaceId) {
+                            return parsed;
+                        }
+                        return prev;
+                    });
+                } catch (e) {
+                    console.error("Error al cargar coche GPS:", e);
+                }
+            } else {
+                setParkedCar(null);
             }
-        }
+        };
+
+        loadParkedCar(); // Carga inicial
+        const interval = setInterval(loadParkedCar, 2000); // Verificar cada 2 segundos
+        return () => clearInterval(interval);
     }, []);
 
     // ESTADOS DEL MODO DE NAVEGACION Y ENRUTAMIENTO
@@ -618,7 +634,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                             </div>
                         </div>
                     ) : (
-                        <div className="absolute top-0 left-0 w-full z-1200 p-4 pt-12 flex justify-center pointer-events-none">
+                        <div className="absolute top-0 left-0 w-full z-1200 p-4 pt-12 flex flex-col items-center gap-3 pointer-events-none">
                             <div className="bg-red-800 text-white px-6 py-3 rounded-full shadow-2xl pointer-events-auto flex items-center gap-4 animate-in slide-in-from-top duration-300">
                                 <span className="font-bold text-sm">
                                     {selectingMode === 'origin' ? "Selecciona el Origen" : "Selecciona el Destino"} en el mapa
@@ -630,6 +646,23 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
                                     <X size={16} />
                                 </button>
                             </div>
+                            {/* BOTON RAPIDO: UBICACION ACTUAL */}
+                            <button
+                                onClick={() => {
+                                    if (selectingMode === 'origin') {
+                                        setNavOrigin('Tu ubicación');
+                                        onSelectPoint('origin', 'Tu ubicación');
+                                    } else {
+                                        setNavDestination('Tu ubicación');
+                                        onSelectPoint('destination', 'Tu ubicación');
+                                    }
+                                    setSelectingMode(null);
+                                }}
+                                className="bg-white text-gray-800 px-5 py-2.5 rounded-full shadow-xl pointer-events-auto flex items-center gap-2 font-bold text-sm hover:bg-gray-50 active:scale-95 transition-all border border-gray-200"
+                            >
+                                <Compass size={16} className="text-blue-600" />
+                                Ubicación actual
+                            </button>
                         </div>
                     )}
                 </>

@@ -1,10 +1,18 @@
 """
 ARCHIVO: config.py
 
-Este archivo maneja la configuración de la aplicación y sus diferentes entornos.
-Define la cadena de conexión a la base de datos, los ajustes de seguridad
-y la integración con proveedores de autenticación externos como Azure AD.
-Permite alternar entre un entorno local y uno institucional dinámicamente.
+CONFIGURACION DE LA APLICACION Y SUS ENTORNOS
+
+Define la cadena de conexion a las bases de datos (mapa e institucional),
+los ajustes de seguridad y la integracion con proveedores de autenticacion
+externos como Azure AD.
+
+Soporta dos modos de operacion:
+  - standalone: Solo usa la base de datos del mapa (para demo o desarrollo)
+  - institutional: Usa la base de datos del mapa + base de datos de la escuela
+
+La base de datos del MAPA siempre es local (SQLite por defecto).
+La base de datos ESCOLAR puede ser externa (Azure SQL, PostgreSQL, SQL Server).
 """
 
 # IMPORTACIONES
@@ -16,29 +24,50 @@ load_dotenv()
 
 # CLASES DE CONFIGURACION
 
+
 class BaseConfig:
     """
     CONFIGURACION BASE
-    
-    Configuración compartida por todos los entornos del sistema.
-    Establece la clave secreta y deshabilita el rastreo de modificaciones
-    de SQLAlchemy para mejorar el rendimiento.
+
+    Configuracion compartida por todos los entornos del sistema.
+    Establece la clave secreta, deshabilita el rastreo de modificaciones
+    de SQLAlchemy y define las URIs de ambas bases de datos.
     """
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # MODO DE OPERACION
+    # standalone: Solo mapa (demo/desarrollo)
+    # institutional: Mapa + datos escolares externos
+    APP_MODE = os.environ.get('APP_MODE', 'standalone')
+
+    # URI DE LA BASE DE DATOS DEL MAPA (siempre local)
+    MAP_DATABASE_URL = os.environ.get('MAP_DATABASE_URL', 'sqlite:///map.db')
+
+    # URI DE LA BASE DE DATOS ESCOLAR (intercambiable)
+    SCHOOL_DATABASE_URL = os.environ.get('SCHOOL_DATABASE_URL', 'sqlite:///school.db')
+
+    # URI PRINCIPAL (requerida por SQLAlchemy, apunta al mapa por defecto)
+    SQLALCHEMY_DATABASE_URI = MAP_DATABASE_URL
+
+    # BINDS PARA MULTIPLES BASES DE DATOS
+    SQLALCHEMY_BINDS = {
+        'map': MAP_DATABASE_URL,
+        'school': SCHOOL_DATABASE_URL,
+    }
 
 
 class LocalConfig(BaseConfig):
     """
     CONFIGURACION LOCAL
-    
-    Modo local: Utiliza SQLite y autenticación básica basada en el número de boleta.
-    Este es el modo por defecto diseñado para desarrollo o pruebas. No requiere
-    configuración de variables de red adicionales, ya que opera sobre el archivo
-    'campus.db'.
+
+    Modo local: Utiliza SQLite tanto para el mapa como para datos escolares.
+    Autenticacion basica basada en el numero de boleta.
+
+    Este es el modo por defecto disenado para desarrollo o pruebas.
+    No requiere configuracion de variables de red adicionales.
     """
     ENV_NAME = 'local'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///campus.db'
     DATA_PROVIDER = 'sqlite'
     AUTH_PROVIDER = 'local'
 
@@ -46,17 +75,27 @@ class LocalConfig(BaseConfig):
 class InstitutionalConfig(BaseConfig):
     """
     CONFIGURACION INSTITUCIONAL
-    
-    Modo institucional: Utiliza base de datos externa y Azure AD para autenticación.
-    Este entorno está diseñado para su despliegue en producción cuando la escuela
-    conecta sus sistemas internos. Requiere validación y configuración a través de
-    variables de entorno.
+
+    Modo institucional: Utiliza SQLite local para el mapa y una base de datos
+    externa para los datos escolares. Azure AD para autenticacion.
+
+    La base de datos escolar se configura con la variable de entorno
+    SCHOOL_DATABASE_URL. Ejemplos:
+
+    SQLite (demo):
+        SCHOOL_DATABASE_URL=sqlite:///school.db
+
+    PostgreSQL:
+        SCHOOL_DATABASE_URL=postgresql://user:pass@host:5432/school_db
+
+    Azure SQL:
+        SCHOOL_DATABASE_URL=mssql+pyodbc://user:pass@server.database.windows.net/db?driver=ODBC+Driver+18+for+SQL+Server
+
+    SQL Server:
+        SCHOOL_DATABASE_URL=mssql+pyodbc://user:pass@server/db?driver=ODBC+Driver+17+for+SQL+Server
     """
     ENV_NAME = 'institutional'
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        'DATABASE_URL',
-        'sqlite:///campus.db'
-    )
+    APP_MODE = 'institutional'
     DATA_PROVIDER = os.environ.get('DATA_PROVIDER', 'sqlserver')
     AUTH_PROVIDER = 'azure'
 
@@ -75,6 +114,7 @@ class InstitutionalConfig(BaseConfig):
 
 
 # DICCIONARIO DE CONFIGURACIONES
+
 _configs = {
     'local': LocalConfig,
     'institutional': InstitutionalConfig,
@@ -86,15 +126,14 @@ _configs = {
 def get_config():
     """
     OBTENER CONFIGURACION
-    
-    Esta función examina la variable de entorno 'APP_ENV' para determinar
-    el entorno actual de ejecución de la aplicación.
-    
+
+    Examina la variable de entorno APP_ENV para determinar el entorno actual.
+
     Valores posibles de APP_ENV:
-    - local: Entorno de desarrollo aislado con SQLite (valor por defecto).
-    - institutional: Entorno de producción en red con Azure y proveedores externos.
-    
-    Retorna la instancia de configuración apropiada.
+    - local: Entorno de desarrollo con SQLite (valor por defecto)
+    - institutional: Entorno de produccion con base de datos externa y Azure AD
+
+    Retorna la instancia de configuracion apropiada.
     """
     env = os.environ.get('APP_ENV', 'local')
     config_class = _configs.get(env, LocalConfig)

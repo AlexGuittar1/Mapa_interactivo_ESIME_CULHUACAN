@@ -1,0 +1,6 @@
+{
+    "campus_id": 1,
+    "kml_file": "Camino ESIME caminable.kml",
+    "walking_speed_mpm": 83.3,
+    "notes": "Los caminos se cargan directamente desde el archivo KML. Este archivo define la configuracion general de rutas."
+}

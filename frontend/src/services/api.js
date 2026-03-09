@@ -28,11 +28,20 @@ function headers(extra = {}) {
 
 // SECCION DE AUTENTICACION
 
-export async function login(boleta) {
+export async function login(boleta, password) {
     const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ boleta }),
+        body: JSON.stringify({ boleta, password }),
+    });
+    return handleResponse(res);
+}
+
+export async function setPassword(boleta, password) {
+    const res = await fetch(`${API_BASE}/auth/set-password`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ boleta, password }),
     });
     return handleResponse(res);
 }

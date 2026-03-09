@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMsal } from "@azure/msal-react";
 import { loginRequest } from "../authConfig";
-import { login, checkEmail, completeProfile, register } from '../services/api';
+import { login, checkEmail, completeProfile, register, setPassword } from '../services/api';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -14,13 +14,19 @@ const Login = () => {
 
     // CAMPOS DE ENTRADA PARA INICIO DE SESION
     const [boleta, setBoleta] = useState('');
+    const [password, setPassword] = useState('');
 
     // CAMPOS DE ENTRADA PARA REGISTRO Y PERFIL
     const [email, setEmail] = useState('');
     const [nombre, setNombre] = useState('');
     const [regBoleta, setRegBoleta] = useState('');
+    const [regPassword, setRegPassword] = useState('');
     const [carrera, setCarrera] = useState('Ingeniería en Sistemas Computacionales');
     const [vehiculo, setVehiculo] = useState('ninguno');
+
+    // ESTADO PARA FLUJO DE USUARIOS MIGRADOS (SIN CONTRASENA)
+    const [needsPassword, setNeedsPassword] = useState(false);
+    const [migratedBoleta, setMigratedBoleta] = useState('');
 
     const handleMicrosoftLogin = () => {
         setError(null);
@@ -55,11 +61,30 @@ const Login = () => {
         e.preventDefault();
         setError(null);
         try {
-            const user = await login(boleta);
+            const user = await login(boleta, password);
+            // Verificar si el usuario necesita crear contrasena (migrado)
+            if (user.needs_password) {
+                setMigratedBoleta(user.boleta);
+                setNeedsPassword(true);
+                setPassword('');
+                return;
+            }
             localStorage.setItem('user', JSON.stringify(user));
             navigate('/map');
         } catch (err) {
-            setError("Usuario no encontrado, verifique su boleta o regístrese.");
+            setError(err.message || "Boleta o contraseña incorrecta.");
+        }
+    };
+
+    const handleSetPassword = async (e) => {
+        e.preventDefault();
+        setError(null);
+        try {
+            const user = await setPassword(migratedBoleta, password);
+            localStorage.setItem('user', JSON.stringify(user));
+            navigate('/map');
+        } catch (err) {
+            setError(err.message || "Error al establecer contraseña.");
         }
     };
 
@@ -71,7 +96,8 @@ const Login = () => {
         const payload = {
             boleta: regBoleta,
             nombre: nombre,
-            email: email || `user_${regBoleta}@esime.mx`, // EMAIL FICTICIO SI ES REGISTRO MANUAL
+            password: regPassword,
+            email: email || `user_${regBoleta}@esime.mx`,
             carrera,
             vehiculo
         };
@@ -161,6 +187,10 @@ const Login = () => {
                             <label className="text-xs font-bold text-gray-500 uppercase">Boleta</label>
                             <input type="text" required value={regBoleta} onChange={e => setRegBoleta(e.target.value)} className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="2024..." />
                         </div>
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase">Contraseña</label>
+                            <input type="password" required value={regPassword} onChange={e => setRegPassword(e.target.value)} className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Mínimo 6 caracteres" minLength={6} />
+                        </div>
                         {/* SELECTORES SIMPLES REUTILIZANDO ESTADO */}
                         <div>
                             <label className="text-xs font-bold text-gray-500 uppercase">Carrera</label>
@@ -224,20 +254,35 @@ const Login = () => {
                         <div className="flex-grow border-t border-gray-200"></div>
                     </div>
 
-                    <form onSubmit={handleBoletaLogin} className="space-y-4">
+                    <form onSubmit={needsPassword ? handleSetPassword : handleBoletaLogin} className="space-y-4">
                         <input
                             type="text"
-                            value={boleta}
+                            value={needsPassword ? migratedBoleta : boleta}
                             onChange={(e) => setBoleta(e.target.value)}
                             placeholder="Número de boleta"
                             className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none transition-colors text-gray-700 font-medium"
                             required
+                            disabled={needsPassword}
                         />
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder={needsPassword ? "Crea tu contraseña (mín. 6 caracteres)" : "Contraseña"}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none transition-colors text-gray-700 font-medium"
+                            required
+                            minLength={6}
+                        />
+                        {needsPassword && (
+                            <div className="bg-yellow-50 text-yellow-700 p-3 rounded-lg text-sm border border-yellow-100">
+                                Tu cuenta fue creada antes de la actualización de seguridad. Crea una contraseña para continuar.
+                            </div>
+                        )}
                         <button
                             type="submit"
                             className="w-full py-3 bg-[#800000] hover:bg-[#600000] text-white font-bold rounded-xl shadow-lg transition-all hover:shadow-red-900/30"
                         >
-                            Ingresar
+                            {needsPassword ? 'Crear Contraseña' : 'Ingresar'}
                         </button>
                     </form>
 

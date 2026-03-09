@@ -135,10 +135,17 @@ const ParkingPage = () => {
 
         const doUpdate = async (userCoords = null) => {
             try {
+                // Construir cuerpo de la peticion incluyendo coordenadas GPS si estan disponibles
+                const requestBody = { status: newStatus, user_boleta: user?.boleta };
+                if (userCoords) {
+                    requestBody.user_lat = userCoords.lat;
+                    requestBody.user_lng = userCoords.lng;
+                }
+
                 const res = await fetch(`${API_URL}/api/parking/spaces/${spaceId}/status`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: newStatus, user_boleta: user?.boleta })
+                    body: JSON.stringify(requestBody)
                 });
                 const data = await res.json();
 
@@ -172,6 +179,7 @@ const ParkingPage = () => {
 
                         // VALIDACIONES DE GEOFENCES PREVIAS A LA LLAMADA A LA API
                         if (newStatus === 'reserved') {
+                            // RESERVAR: Debe estar a menos de 1.5 km del estacionamiento general
                             const distance = haversineDistance(userCoords, PARKING_CENTER);
                             if (distance > MAX_RESERVATION_DISTANCE) {
                                 alert("Debes estar a menos de 1.5 km del estacionamiento para poder reservar un lugar.\nNo es posible utilizar esta función desde tu ubicación actual.");
@@ -179,6 +187,7 @@ const ParkingPage = () => {
                                 return;
                             }
                         } else if (newStatus === 'occupied') {
+                            // OCUPAR: Debe estar a menos de 50m de la sección específica
                             let targetSectionName = null;
                             for (const sec of sections) {
                                 if (sec.spaces.some(s => s.id === spaceId)) {
@@ -190,7 +199,7 @@ const ParkingPage = () => {
                                 const secCoords = PARKING_SECTIONS_COORDS[targetSectionName];
                                 const distanceToSection = haversineDistance(userCoords, secCoords);
                                 if (distanceToSection > OCCUPY_MAX_DISTANCE) {
-                                    alert("No estás lo suficientemente cerca de esta sección del estacionamiento para marcar el espacio como ocupado.\nNo es posible utilizar esta función desde tu ubicación actual.");
+                                    alert(`Debes estar a menos de 50 metros de ${targetSectionName} para marcar este espacio como ocupado.\nNo es posible utilizar esta función desde tu ubicación actual.`);
                                     setIsUpdating(false);
                                     return;
                                 }

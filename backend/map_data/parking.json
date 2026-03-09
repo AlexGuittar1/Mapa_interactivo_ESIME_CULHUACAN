@@ -1,0 +1,67 @@
+{
+    "campus_id": 1,
+    "campus_name": "ESIME Culhuacan",
+    "sections": [
+        {
+            "id": 1,
+            "name": "Seccion 1",
+            "total_spaces": 90,
+            "base_lat": 19.329415,
+            "base_lon": -99.111664,
+            "lat_offset": 0.000012,
+            "lon_offset": 0.000020,
+            "rows": 9,
+            "spaces_per_row": 10
+        },
+        {
+            "id": 2,
+            "name": "Seccion 2",
+            "total_spaces": 90,
+            "base_lat": 19.329622,
+            "base_lon": -99.111354,
+            "lat_offset": 0.000012,
+            "lon_offset": 0.000020,
+            "rows": 9,
+            "spaces_per_row": 10
+        },
+        {
+            "id": 3,
+            "name": "Seccion 3",
+            "total_spaces": 85,
+            "base_lat": 19.329200,
+            "base_lon": -99.111200,
+            "lat_offset": 0.000012,
+            "lon_offset": 0.000020,
+            "rows": 9,
+            "spaces_per_row": 10
+        },
+        {
+            "id": 4,
+            "name": "Seccion 4",
+            "total_spaces": 80,
+            "base_lat": 19.328900,
+            "base_lon": -99.111100,
+            "lat_offset": 0.000012,
+            "lon_offset": 0.000020,
+            "rows": 8,
+            "spaces_per_row": 10
+        }
+    ],
+    "reference_buildings": {
+        "building_1": {
+            "lat": 19.329712,
+            "lon": -99.112289,
+            "name": "Edificio 1 / Cafeteria"
+        },
+        "building_2": {
+            "lat": 19.330421,
+            "lon": -99.111893,
+            "name": "Edificio 2"
+        },
+        "building_3": {
+            "lat": 19.329710,
+            "lon": -99.111490,
+            "name": "Edificio 3"
+        }
+    }
+}

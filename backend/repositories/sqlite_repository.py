@@ -39,6 +39,7 @@ class SQLiteUserRepository(UserRepository):
             id_grupo=data.get('id_grupo'),
             institutional_id=data.get('institutional_id'),
             auth_provider=data.get('auth_provider', 'local'),
+            password_hash=data.get('password_hash'),
         )
         db.session.add(nuevo)
         db.session.commit()

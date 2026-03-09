@@ -3,15 +3,17 @@ ARCHIVO: services/auth_service.py
 
 SERVICIO DE AUTENTICACION
 
-Lógica de autenticación desacoplada del controlador web.
+Logica de autenticacion desacoplada del controlador web.
+Incluye hashing de contrasenas con bcrypt (werkzeug), validacion
+de inputs y proteccion contra enumeracion de usuarios.
 
 Soporta dos modos conceptuales:
-- local:  Autenticación por número de boleta local (modo actual aislado)
-- azure:  Autenticación vía Azure AD con auto-provisionamiento (modo institucional futuro)
-
-El servicio es ajeno a HTTP o protocolos Flask; puramente algorítmico y retorna tuplas de respuesta.
+- local:  Autenticacion por numero de boleta + contrasena
+- azure:  Autenticacion via Azure AD con auto-provisionamiento (modo institucional futuro)
 """
+import re
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class AuthService:
@@ -19,29 +21,75 @@ class AuthService:
     CLASE DE SERVICIO DE AUTENTICACION UNIFICADO
     """
 
+    # CONSTANTES DE VALIDACION
+    BOLETA_PATTERN = re.compile(r'^\d{7,15}$')  # 7-15 digitos numericos
+    MIN_PASSWORD_LENGTH = 6
+    MAX_NAME_LENGTH = 100
+    MIN_NAME_LENGTH = 2
+
     def __init__(self, user_repo, auth_provider='local'):
         """
-        CONVENCION DE INICIALIZACION
-        
+        INICIALIZACION DEL SERVICIO
+
         Argumentos:
-            user_repo: Instancia funcional del repositorio ligado (SQLite o Base SQL)
-            auth_provider: Referencia modal local o azure direct.
+            user_repo: Repositorio de usuarios (SQLite o externo)
+            auth_provider: Modo de autenticacion ('local' o 'azure')
         """
         self.user_repo = user_repo
         self.auth_provider = auth_provider
 
+    def _validate_boleta(self, boleta):
+        """
+        VALIDAR FORMATO DE BOLETA
+
+        Verifica que la boleta sea una cadena numerica de 7-15 digitos.
+        Retorna tupla (valida: bool, mensaje_error: str o None)
+        """
+        if not boleta or not isinstance(boleta, str):
+            return False, "La boleta es requerida"
+        boleta = boleta.strip()
+        if not self.BOLETA_PATTERN.match(boleta):
+            return False, "La boleta debe contener entre 7 y 15 digitos numericos"
+        return True, None
+
+    def _validate_password(self, password):
+        """
+        VALIDAR FORTALEZA DE CONTRASENA
+
+        Verifica longitud minima de la contrasena.
+        Retorna tupla (valida: bool, mensaje_error: str o None)
+        """
+        if not password or not isinstance(password, str):
+            return False, "La contrasena es requerida"
+        if len(password) < self.MIN_PASSWORD_LENGTH:
+            return False, f"La contrasena debe tener al menos {self.MIN_PASSWORD_LENGTH} caracteres"
+        return True, None
+
+    def _validate_nombre(self, nombre):
+        """
+        VALIDAR NOMBRE DEL USUARIO
+
+        Verifica longitud y caracteres basicos del nombre.
+        Retorna tupla (valida: bool, mensaje_error: str o None)
+        """
+        if not nombre or not isinstance(nombre, str):
+            return False, "El nombre es requerido"
+        nombre = nombre.strip()
+        if len(nombre) < self.MIN_NAME_LENGTH:
+            return False, f"El nombre debe tener al menos {self.MIN_NAME_LENGTH} caracteres"
+        if len(nombre) > self.MAX_NAME_LENGTH:
+            return False, f"El nombre no puede exceder {self.MAX_NAME_LENGTH} caracteres"
+        return True, None
+
     def login(self, credentials):
         """
         INICIO DE SESION UNIFICADO
-        
-        Mesa de partes determinando si deriva a protocolo nativo local o Azure
-        usando las directivas del inyector de dependencias. Contiene retorno bivariado.
 
         Argumentos:
-            credentials: Diccionario mapeado conteniendo esquema de 'boleta' o cadena 'azure_token'
+            credentials: Diccionario con 'boleta' y 'password', o 'azure_token'
 
         Retorna:
-            tupla binaria: (Entidad del usuario o Nulo, Argumento de error impreso o Nulo)
+            tupla: (datos_usuario o None, mensaje_error o None)
         """
         if self.auth_provider == 'azure':
             return self._login_azure(credentials)
@@ -50,50 +98,81 @@ class AuthService:
     def check_email(self, email):
         """
         VERIFICAR EXISTENCIA DE CORREO
-        
-        Paso temprano de autenticación simulada, confirmando unicidad del identificador.
         """
         user = self.user_repo.find_by_email(email)
         return user, user is not None
 
     def register(self, data):
         """
-        REGISTRAR ALUMNO NUEVO MANUALMENTE
-        
-        Inscribe al residente local enviando los metadatos necesarios al orm base.
+        REGISTRAR ALUMNO NUEVO CON CONTRASENA
+
+        Valida inputs, hashea la contrasena con bcrypt y crea el registro.
         """
         boleta = data.get('boleta')
-        if not boleta:
-            return None, "La boleta es requerida"
+        password = data.get('password')
+        nombre = data.get('nombre')
 
+        # Validar boleta
+        valid, error = self._validate_boleta(boleta)
+        if not valid:
+            return None, error
+
+        # Validar nombre
+        valid, error = self._validate_nombre(nombre)
+        if not valid:
+            return None, error
+
+        # Validar contrasena
+        valid, error = self._validate_password(password)
+        if not valid:
+            return None, error
+
+        # Verificar duplicados
         if self.user_repo.exists_by_boleta(boleta):
-            return None, "La boleta ya está registrada"
+            return None, "La boleta ya esta registrada"
 
-        user = self.user_repo.create(data)
+        # Hashear contrasena con bcrypt (via werkzeug)
+        password_hash = generate_password_hash(password, method='pbkdf2:sha256', salt_length=16)
+
+        # Crear usuario con hash
+        create_data = {
+            'boleta': boleta.strip(),
+            'nombre': nombre.strip(),
+            'email': data.get('email'),
+            'carrera': data.get('carrera', 'Ingenieria'),
+            'vehiculo': data.get('vehiculo', 'ninguno'),
+            'id_grupo': data.get('id_grupo'),
+            'password_hash': password_hash,
+        }
+        user = self.user_repo.create(create_data)
         return user, None
 
     def complete_profile(self, data):
         """
-        COMPLETAR PERFIL AUSENTE
-        
-        Requisita campos del perfil del usuario (específicamente durante el flujo
-        de aprovisionamiento externo automatizado como en entornos de Active Directory).
+        COMPLETAR PERFIL (FLUJO AZURE)
+
+        Crea cuenta local para usuario autenticado via Azure.
         """
         boleta = data.get('boleta')
-        if not boleta:
-            return None, "La boleta es requerida"
+        valid, error = self._validate_boleta(boleta)
+        if not valid:
+            return None, error
 
         if self.user_repo.exists_by_boleta(boleta):
-            return None, "La boleta ya está registrada"
+            return None, "La boleta ya esta registrada"
 
-        user = self.user_repo.create(data)
+        # Azure flow: password opcional (la auth es por token)
+        password = data.get('password')
+        create_data = dict(data)
+        if password:
+            create_data['password_hash'] = generate_password_hash(password, method='pbkdf2:sha256', salt_length=16)
+
+        user = self.user_repo.create(create_data)
         return user, None
 
     def update_user(self, boleta, data):
         """
         ACTUALIZAR DATOS DEL ALUMNO
-        
-        Modifica preferencias o información ligada a perfil. Desencadena salvaguarda base.
         """
         user = self.user_repo.update(boleta, data)
         if not user:
@@ -104,22 +183,63 @@ class AuthService:
 
     def _login_local(self, credentials):
         """
-        EJECUCION DE LOGIN LOCAL
-        
-        Verifica un acceso tradicional en sistemas que carezcan de directorio activo corporativo.
+        LOGIN LOCAL SEGURO
+
+        Verifica boleta + contrasena usando bcrypt.
+        Mensaje de error generico para prevenir enumeracion de usuarios.
         """
         boleta = credentials.get('boleta')
-        if not boleta:
-            return None, "La boleta es requerida"
+        password = credentials.get('password')
 
+        # Validar formato de boleta
+        valid, error = self._validate_boleta(boleta)
+        if not valid:
+            return None, error
+
+        # Buscar usuario
         user = self.user_repo.find_by_boleta(boleta)
         if not user:
+            # Mensaje generico para prevenir enumeracion de usuarios
+            return None, "Boleta o contrasena incorrecta"
+
+        # Obtener hash almacenado directamente del modelo
+        from models import Alumno
+        alumno = Alumno.query.filter_by(boleta=boleta).first()
+
+        # Si el usuario no tiene contrasena (migrado sin password), pedir que la cree
+        if not alumno.password_hash:
+            return {'needs_password': True, 'boleta': boleta, 'nombre': user.get('nombre')}, None
+
+        # Verificar contrasena con bcrypt
+        if not check_password_hash(alumno.password_hash, password or ''):
+            return None, "Boleta o contrasena incorrecta"
+
+        # Login exitoso: actualizar last_login
+        self.user_repo.update(boleta, {'last_login': datetime.now()})
+        return user, None
+
+    def set_password(self, boleta, new_password):
+        """
+        ESTABLECER CONTRASENA PARA USUARIOS EXISTENTES SIN PASSWORD
+
+        Permite a usuarios migrados (sin contrasena) crear su contrasena.
+        """
+        valid, error = self._validate_password(new_password)
+        if not valid:
+            return None, error
+
+        from models import db, Alumno
+        alumno = Alumno.query.filter_by(boleta=boleta).first()
+        if not alumno:
             return None, "Usuario no encontrado"
 
-        # Actualizar last_login si el campo existe
-        self.user_repo.update(boleta, {'last_login': datetime.now()})
+        if alumno.password_hash:
+            return None, "Este usuario ya tiene contrasena. Usa login normal."
 
-        return user, None
+        alumno.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256', salt_length=16)
+        db.session.commit()
+
+        return alumno.to_dict(), None
 
     def _login_azure(self, credentials):
         """

@@ -64,13 +64,9 @@ const MapPage = () => {
         if (!name) return null;
         if (name === "Tu ubicacion" || name === "Tu ubicación") return null; // MANEJAR DE FORMA SEPARADA
 
-        // REVISAR EDIFICIOS
+        // REVISAR EDIFICIOS (PUNTOS CLAVE ESTATICOS)
         const b = buildings.find(x => (x.name || x.nombre) === name);
         if (b) return { lat: b.lat, lon: b.lon };
-
-        // REVISAR UBICACIONES ESTATICAS
-        const l = locations.find(x => x.name === name);
-        if (l) return { lat: l.lat, lon: l.lon };
 
         // REVISAR PINES PERSONALIZADOS
         const p = customPins.find(x => x.name === name);
