@@ -12,8 +12,9 @@ Soporta dos modos conceptuales:
 - azure:  Autenticacion via Azure AD con auto-provisionamiento (modo institucional futuro)
 """
 import re
+import bcrypt
 from datetime import datetime
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash as werkzeug_check
 
 
 class AuthService:
@@ -37,6 +38,52 @@ class AuthService:
         """
         self.user_repo = user_repo
         self.auth_provider = auth_provider
+
+    # -------------------------------------------------------------------
+    #  UTILIDADES DE HASHING (bcrypt)
+    # -------------------------------------------------------------------
+
+    def _hash_password(self, password):
+        """
+        Genera un hash bcrypt para la contrasena dada.
+        Retorna el hash como cadena de texto.
+        """
+        return bcrypt.hashpw(
+            password.encode('utf-8'),
+            bcrypt.gensalt()
+        ).decode('utf-8')
+
+    def _verify_password(self, stored_hash, password):
+        """
+        Verifica una contrasena contra un hash almacenado.
+        Soporta migracion transparente: si el hash es pbkdf2/scrypt
+        (werkzeug legacy), lo verifica con werkzeug.
+        Retorna True si la contrasena es correcta.
+        """
+        if not stored_hash or not password:
+            return False
+
+        # Hash legacy (pbkdf2 o scrypt de werkzeug): verificar con werkzeug
+        if stored_hash.startswith(('pbkdf2:', 'scrypt:')):
+            return werkzeug_check(stored_hash, password)
+
+        # Hash bcrypt: verificar directamente
+        try:
+            return bcrypt.checkpw(
+                password.encode('utf-8'),
+                stored_hash.encode('utf-8')
+            )
+        except (ValueError, TypeError):
+            return False
+
+    def _needs_rehash(self, stored_hash):
+        """
+        Determina si un hash necesita ser migrado a bcrypt.
+        Retorna True si el hash usa un algoritmo legacy.
+        """
+        if not stored_hash:
+            return False
+        return stored_hash.startswith(('pbkdf2:', 'scrypt:'))
 
     def _validate_boleta(self, boleta):
         """
@@ -131,8 +178,8 @@ class AuthService:
         if self.user_repo.exists_by_boleta(boleta):
             return None, "La boleta ya esta registrada"
 
-        # Hashear contrasena con bcrypt (via werkzeug)
-        password_hash = generate_password_hash(password, method='pbkdf2:sha256', salt_length=16)
+        # Hashear contrasena con bcrypt
+        password_hash = self._hash_password(password)
 
         # Crear usuario con hash
         create_data = {
@@ -165,7 +212,7 @@ class AuthService:
         password = data.get('password')
         create_data = dict(data)
         if password:
-            create_data['password_hash'] = generate_password_hash(password, method='pbkdf2:sha256', salt_length=16)
+            create_data['password_hash'] = self._hash_password(password)
 
         user = self.user_repo.create(create_data)
         return user, None
@@ -210,9 +257,15 @@ class AuthService:
         if not alumno.password_hash:
             return {'needs_password': True, 'boleta': boleta, 'nombre': user.get('nombre')}, None
 
-        # Verificar contrasena con bcrypt
-        if not check_password_hash(alumno.password_hash, password or ''):
+        # Verificar contrasena (soporta bcrypt y legacy pbkdf2/scrypt)
+        if not self._verify_password(alumno.password_hash, password or ''):
             return None, "Boleta o contrasena incorrecta"
+
+        # Migracion transparente: re-hashear a bcrypt si usa formato legacy
+        if self._needs_rehash(alumno.password_hash):
+            alumno.password_hash = self._hash_password(password)
+            from models import db
+            db.session.commit()
 
         # Login exitoso: actualizar last_login
         self.user_repo.update(boleta, {'last_login': datetime.now()})
@@ -236,7 +289,7 @@ class AuthService:
         if alumno.password_hash:
             return None, "Este usuario ya tiene contrasena. Usa login normal."
 
-        alumno.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256', salt_length=16)
+        alumno.password_hash = self._hash_password(new_password)
         db.session.commit()
 
         return alumno.to_dict(), None

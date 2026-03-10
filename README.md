@@ -1153,3 +1153,86 @@ Si estas comenzando a estudiar este proyecto, sigue este orden recomendado:
 8. No intentes entender todo de golpe. Este proyecto tiene miles de lineas de codigo. Es normal no entender todo la primera vez. Enfocate en una seccion a la vez y avanza gradualmente.
 
 9. Experimenta sin miedo. Git te permite deshacer cualquier cambio. Si rompes algo, escribe git checkout . en la terminal para volver al estado anterior.
+
+
+## Migración y limpieza de datos después de la refactorización
+
+Esta sección documenta los cambios realizados durante la migración posterior a la refactorización del sistema el 10 de marzo de 2026.
+
+
+### Limpieza de datos realizada
+
+Se eliminaron 9 cuentas de usuario que pertenecían a datos de prueba y versiones anteriores del sistema. Solo se conservaron las cuentas de produccion:
+
+- Adrian Frias (boleta: 2024351279)
+- Omar Sosa (boleta: 2025350215)
+
+La limpieza siguió el orden correcto de eliminación para respetar las restricciones de claves foraneas:
+
+1. Inscripciones de los usuarios eliminados (84 registros)
+2. Registros de alumnos (9 usuarios eliminados)
+
+
+### Sistema de hashing de contraseñas implementado
+
+Se migró el sistema de almacenamiento de contraseñas de pbkdf2:sha256 (werkzeug) a bcrypt.
+
+Características de la implementación:
+
+- Algoritmo: bcrypt via la librería bcrypt de Python
+- Las contraseñas nunca se almacenan en texto plano
+- Las contraseñas no son reversibles
+- Ni siquiera el administrador del servidor puede ver la contraseña original
+- El sistema verifica contraseñas usando comparación de hash
+
+Migración transparente implementada:
+
+- Si un usuario tiene un hash legacy (pbkdf2 o scrypt), el sistema lo verifica usando werkzeug
+- Después de una autenticación exitosa con hash legacy, el hash se actualiza automáticamente a bcrypt
+- Los nuevos registros y cambios de contraseña siempre usan bcrypt
+
+Archivos modificados:
+
+- services/auth_service.py: Método _hash_password() para generar hashes bcrypt, método _verify_password() para verificar contraseñas con soporte dual (bcrypt + legacy), método _needs_rehash() para detectar hashes que necesitan actualización
+- requirements.txt: Se agregó bcrypt como dependencia
+
+
+### Limpieza de bases de datos antiguas
+
+Se identificaron y eliminaron 4 bases de datos que pertenecían a versiones anteriores del sistema:
+
+- backend/campus.db: Base de datos original antes de la separación en map.db y school.db
+- backend/instance/campus.db: Copia en directorio instance de la base legacy
+- backend/instance/campus_backup_20260214_133603.db: Backup manual de la base legacy
+- backend/school.db: Duplicado en la raíz del backend (la activa está en instance/)
+
+Se crearon backups automáticos de todos los archivos antes de eliminarlos en backend/backups_pre_migration/.
+
+Bases de datos que permanecen activas:
+
+- instance/map.db: Edificios, rutas, estacionamiento, lugares guardados
+- instance/school.db: Alumnos, materias, horarios, inscripciones
+
+
+### Cambios realizados en los horarios
+
+Se corrigió el horario de la materia Estructura de Datos para el grupo 3CV35.
+
+El problema era que dos días tenían horarios incorrectos que mostraban la clase en turno matutino/vespertino cuando debería ser turno nocturno:
+
+- Martes: se corrigió de 15:00-16:30 a 19:00-20:30
+- Viernes: se corrigió de 16:30-18:00 a 20:30-22:00
+
+El horario corregido es:
+
+```
+Lunes:    18:00 - 19:30
+Martes:   19:00 - 20:30 (corregido)
+Miércoles: 20:30 - 22:00
+Jueves:   19:00 - 20:30
+Viernes:  20:30 - 22:00 (corregido)
+```
+
+La corrección aplica para ambos usuarios (Omar Sosa y Adrian Frias) ya que comparten el mismo grupo y materia.
+
+El script de migración utilizado se encuentra en backend/migrate_post_refactor.py.
