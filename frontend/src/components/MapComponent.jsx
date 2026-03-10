@@ -843,7 +843,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
 
             {/* --- NAV BOTTOM SHEET (Route Info) --- */}
             {isNavigating && selection?.destination && (route || true) && (
-                <div className="absolute bottom-6 left-4 right-4 bg-[#b91c1c] text-white rounded-4xl p-6 shadow-2xl z-1200">
+                <div className="absolute bottom-0 left-0 right-0 sm:bottom-6 sm:left-4 sm:right-4 bg-[#b91c1c] text-white rounded-t-[2rem] sm:rounded-4xl p-6 pb-8 shadow-2xl z-1200 safe-bottom">
                     <div className="flex items-center justify-between mb-4">
                         <div>
                             <h2 className="text-2xl font-black">
@@ -872,7 +872,7 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
 
             {/* --- FLOATING CONTROLS --- */}
             {!isNavigating && (
-                <div className="absolute bottom-28 right-4 z-1000 flex flex-col items-end gap-3">
+                <div className="absolute bottom-24 sm:bottom-28 right-4 z-1000 flex flex-col items-end gap-3">
                     <button
                         onClick={handleCompassClick}
                         className="bg-white p-3 rounded-full shadow-xl hover:bg-gray-50 active:scale-95 transition-all"
@@ -902,8 +902,8 @@ const MapComponent = ({ buildings, customPins, setCustomPins, route, setRoute, n
 
             {/* --- BOTTOM NAVIGATION BAR --- */}
             {!isNavigating && (
-                <div className="absolute bottom-4 left-4 right-4 z-1001">
-                    <div className="bg-[#b30000] rounded-[2.5rem] px-6 py-4 flex justify-between items-center shadow-2xl relative">
+                <div className="absolute bottom-0 left-0 right-0 sm:bottom-4 sm:left-4 sm:right-4 z-1001 safe-bottom">
+                    <div className="bg-[#b30000] rounded-t-[2rem] sm:rounded-[2.5rem] px-6 py-3 pb-4 sm:py-4 flex justify-between items-center shadow-2xl relative">
                         {/* Nav Items... Same as before */}
                         <button
                             onClick={() => navigate('/parking')}

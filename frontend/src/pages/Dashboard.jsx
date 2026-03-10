@@ -65,7 +65,7 @@ const Dashboard = () => {
     if (!user) return null;
 
     return (
-        <div className="h-screen bg-gray-100 flex flex-col font-sans overflow-hidden">
+        <div className="min-h-screen bg-gray-100 flex flex-col font-sans overflow-y-auto">
             {/* --- ENCABEZADO --- */}
             <div className="bg-[#8B0000] px-4 pt-10 pb-6 lg:pb-8 flex justify-between items-center rounded-b-[2rem] lg:rounded-b-[3rem] shadow-2xl relative z-10 border-b border-red-900/30 shrink-0">
                 <div className="flex items-center gap-3 lg:ml-8">
@@ -131,7 +131,7 @@ const Dashboard = () => {
             </div>
 
             {/* --- CONTENIDO PRINCIPAL (TARJETA BLANCA) --- */}
-            <div className="flex-1 bg-white mx-0 sm:mx-4 lg:mx-auto -mt-6 lg:-mt-6 lg:mb-6 rounded-t-[2.5rem] sm:rounded-[2.5rem] pt-12 lg:pt-12 px-6 lg:px-10 pb-6 shadow-2xl z-0 overflow-hidden flex flex-col lg:flex-row max-w-6xl w-full self-center mb-0 sm:mb-4 min-h-0 gap-8 h-full">
+            <div className="flex-1 bg-white mx-0 sm:mx-4 lg:mx-auto -mt-6 lg:-mt-6 lg:mb-6 rounded-t-[2.5rem] sm:rounded-[2.5rem] pt-12 lg:pt-12 px-6 lg:px-10 pb-8 shadow-2xl z-0 overflow-visible flex flex-col lg:flex-row max-w-6xl w-full self-center mb-0 sm:mb-4 gap-8">
 
                 {/* --- COLUMNA 1: INFORMACION DE USUARIO Y TRANSPORTE --- */}
                 <div className="flex flex-col items-center lg:items-start lg:w-1/3 shrink-0 lg:h-full lg:overflow-y-auto custom-scrollbar lg:pr-6">

@@ -14,9 +14,16 @@ html,
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
   background: #ffffff !important;
   font-family: 'Inter', sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Safe area support for iPhones with notch/home bar */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 .map-bg-premium {
