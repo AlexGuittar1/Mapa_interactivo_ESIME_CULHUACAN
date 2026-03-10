@@ -155,7 +155,7 @@ const MapPage = () => {
     };
 
     return (
-        <div className="h-screen w-full">
+        <div className="h-dvh w-full">
             <MapComponent
                 buildings={buildings}
                 parking={parking}

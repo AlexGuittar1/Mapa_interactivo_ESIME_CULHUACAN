@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight, CalendarClock, X } from 'lucide-react';
 import './ParkingPage.css';
@@ -326,10 +326,21 @@ const ParkingPage = () => {
         if (currIdx > 0) setSelectedSectionId(sections[currIdx - 1].id);
     };
 
+    // Auto-scroll selected tab into view
+    const tabsContainerRef = useRef(null);
+    useEffect(() => {
+        if (tabsContainerRef.current && selectedSectionId) {
+            const activeBtn = tabsContainerRef.current.querySelector('[data-active="true"]');
+            if (activeBtn) {
+                activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+    }, [selectedSectionId]);
+
 
 
     return (
-        <div className="h-screen bg-gray-50 flex flex-col font-sans overflow-hidden">
+        <div className="h-dvh bg-gray-50 flex flex-col font-sans overflow-hidden">
 
             {/* --- ENCABEZADO --- */}
             <div className="pt-12 pb-6 px-6 flex flex-col items-center relative shrink-0">
@@ -357,12 +368,13 @@ const ParkingPage = () => {
                     </button>
 
                     {/* CONTENEDOR CON DESPLAZAMIENTO FLUIDO */}
-                    <div className="flex-1 overflow-x-auto no-scrollbar scroll-smooth mx-1 sm:mx-2 flex items-center gap-2 sm:gap-3 px-1 sm:px-2 min-w-0 pointer-events-auto touch-pan-x">
+                    <div ref={tabsContainerRef} className="flex-1 overflow-x-auto no-scrollbar scroll-smooth mx-1 sm:mx-2 flex items-center gap-1.5 sm:gap-3 px-1 sm:px-2 min-w-0 pointer-events-auto touch-pan-x">
                         {sections.map(sec => (
                             <button
                                 key={sec.id}
+                                data-active={selectedSectionId === sec.id}
                                 onClick={() => setSelectedSectionId(sec.id)}
-                                className={`px-4 py-2 sm:px-6 sm:py-3.5 rounded-full whitespace-nowrap text-sm sm:text-base font-black transition-all duration-300 shrink-0 ${selectedSectionId === sec.id
+                                className={`px-3 py-1.5 sm:px-6 sm:py-3.5 rounded-full whitespace-nowrap text-xs sm:text-base font-black transition-all duration-300 shrink-0 ${selectedSectionId === sec.id
                                     ? 'bg-gradient-to-r from-[#b30000] to-[#800000] text-white shadow-xl shadow-red-900/20 scale-100 ring-2 ring-red-100 ring-offset-2'
                                     : 'text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-gray-800'
                                     }`}

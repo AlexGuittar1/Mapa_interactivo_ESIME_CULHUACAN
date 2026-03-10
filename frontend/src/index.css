@@ -26,6 +26,13 @@ html,
   }
 }
 
+/* Mobile viewport fix: 100vh includes browser chrome, 100dvh is the real visible area */
+.h-dvh {
+  height: 100vh;
+  /* fallback for older browsers */
+  height: 100dvh;
+}
+
 .map-bg-premium {
   background: white !important;
 }
@@ -92,16 +99,20 @@ html,
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: rgba(139, 0, 0, 0.4);
   border-radius: 10px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgba(139, 0, 0, 0.7);
 }
+
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(139, 0, 0, 0.4) transparent;
