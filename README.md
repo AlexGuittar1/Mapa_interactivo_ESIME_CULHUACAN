@@ -65,17 +65,30 @@ REACT FRONTEND (localhost:5173)
        v
 FLASK BACKEND (localhost:5001)
        |
-       |--- SQLALCHEMY (ORM)
+       |--- SQLALCHEMY (ORM) con BINDS multiples
        |         |
-       |         v
-       |    BASE DE DATOS SQLITE (campus.db)
+       |         |--- BASE DE DATOS MAP (instance/map.db)
+       |         |    Edificios, caminos, estacionamiento,
+       |         |    lugares guardados
+       |         |
+       |         |--- BASE DE DATOS SCHOOL (instance/school.db)
+       |              Alumnos, materias, grupos, horarios,
+       |              inscripciones, profesores
        |
        |--- KML ROUTER (NetworkX + Dijkstra)
        |         |
        |         v
        |    ARCHIVO KML (caminos del campus)
        |
-       |--- SERVICIOS (auth_service, schedule_service)
+       |--- SERVICIOS
+       |    |--- auth_service (autenticacion + bcrypt)
+       |    |--- schedule_service (horarios)
+       |    |--- parking_service (estacionamiento)
+       |    |--- school_adapter (datos institucionales)
+       |
+       |--- SEGURIDAD
+            |--- Hashing bcrypt para contrasenas
+            |--- Migracion transparente de hashes legacy
 ```
 
 Como interactuan frontend y backend:
@@ -162,7 +175,9 @@ REACT (estado local + componentes)
        v
 FLASK API (endpoints en app.py)
        |
-       |--- Para datos: SQLALCHEMY ---> SQLITE (campus.db)
+       |--- Para datos del mapa: SQLALCHEMY ---> SQLITE (instance/map.db)
+       |
+       |--- Para datos academicos: SQLALCHEMY ---> SQLITE (instance/school.db)
        |
        |--- Para rutas: KML ROUTER ---> GRAFO DE NETWORKX
        |
@@ -242,9 +257,17 @@ Se usa porque es el unico lenguaje que los navegadores entienden de forma nativa
 
 ### SQLite
 
-SQLite es un sistema de base de datos que almacena toda la informacion en un solo archivo dentro del proyecto. No requiere instalar un servidor de base de datos separado como MySQL o PostgreSQL.
+SQLite es un sistema de base de datos relacional que almacena toda la informacion en archivos individuales dentro del proyecto. No requiere instalar un servidor de base de datos separado como MySQL o PostgreSQL. Toda la logica del motor de base de datos esta contenida en una biblioteca que se ejecuta dentro de tu programa.
 
-Se eligio porque es ideal para desarrollo local y aprendizaje: un solo archivo llamado campus.db contiene todas las tablas con usuarios, horarios, estacionamiento y mas.
+En este proyecto se utilizan dos archivos de base de datos separados, cada uno con un proposito diferente:
+
+- instance/map.db: Almacena todos los datos relacionados con el mapa fisico del campus. Esto incluye edificios, caminos peatonales, secciones de estacionamiento, espacios individuales de estacionamiento, reservas, historial de uso y los lugares que cada usuario ha guardado como favoritos.
+
+- instance/school.db: Almacena todos los datos academicos e institucionales. Esto incluye alumnos (con sus credenciales de acceso), materias del plan de estudios, profesores, salones, grupos, horarios de clase e inscripciones.
+
+Esta separacion se eligio por dos razones. Primera, permite que los datos del mapa (que son propios de la aplicacion y del campus fisico) sean independientes de los datos academicos (que pertenecen a la institucion educativa). Segunda, permite reemplazar la base de datos escolar por la base de datos real de cualquier otra escuela sin afectar el funcionamiento del mapa.
+
+La configuracion de estas dos bases de datos se define en config.py usando la funcionalidad de SQLALCHEMY_BINDS de Flask-SQLAlchemy. Cada modelo en el codigo tiene un atributo llamado __bind_key__ que indica en cual base de datos vive. Los modelos con __bind_key__ = 'map' se almacenan en map.db y los modelos con __bind_key__ = 'school' se almacenan en school.db.
 
 
 ### SQLAlchemy
@@ -296,6 +319,30 @@ Se usa para saber donde esta el estudiante en tiempo real: para calcular rutas d
 Microsoft Authentication Library (MSAL) permite que los usuarios inicien sesion con su cuenta institucional de Outlook o Microsoft 365. Esto conecta la aplicacion con el sistema de correo de la escuela.
 
 Se uso para ofrecer una opcion de autenticacion profesional. En modo local, los usuarios tambien pueden iniciar sesion con su numero de boleta.
+
+
+### bcrypt
+
+bcrypt es un algoritmo de hashing de contrasenas disenado especificamente para almacenar credenciales de forma segura. A diferencia de algoritmos de proposito general como SHA-256 o MD5, bcrypt fue creado para ser intencionalmente lento: esto dificulta enormemente que un atacante pruebe millones de contrasenas por segundo si obtiene acceso a la base de datos.
+
+Que es un hash: Un hash es una funcion matematica que transforma un dato de cualquier tamano en una cadena de caracteres de tamano fijo. La caracteristica fundamental es que el proceso es irreversible: dada la contrasena "nueva123" puedes calcular su hash facilmente, pero dado el hash es computacionalmente imposible recuperar "nueva123". Esto significa que aunque alguien robe la base de datos, no puede obtener las contrasenas originales.
+
+Como funciona bcrypt internamente:
+
+1. Recibe la contrasena en texto plano, por ejemplo "nueva123".
+2. Genera una sal (salt) aleatoria. La sal es una cadena de caracteres que se agrega a la contrasena antes de calcular el hash. Esto asegura que dos usuarios con la misma contrasena tengan hashes completamente diferentes.
+3. Ejecuta multiples rondas del algoritmo Blowfish (por defecto 12 rondas, cada ronda el calculo se duplica en tiempo). Esto es lo que hace a bcrypt lento deliberadamente.
+4. Produce una cadena como: $2b$12$0K9cVIN3l8kss... donde $2b$ indica bcrypt, $12$ indica 12 rondas, y el resto es la sal concatenada con el hash.
+
+Por que no usar SHA-256 o MD5 para contrasenas: Estos algoritmos fueron disenados para ser rapidos. Un atacante puede calcular miles de millones de hashes SHA-256 por segundo en hardware moderno. bcrypt esta disenado para tomar aproximadamente 100 milisegundos por hash, lo que reduce la velocidad de un ataque de fuerza bruta en un factor de millones.
+
+En este proyecto se usa la biblioteca bcrypt de Python junto con werkzeug.security para soportar migracion transparente de hashes antiguos. El archivo services/auth_service.py contiene tres metodos clave que implementan este sistema:
+
+- _hash_password(password): Recibe una contrasena en texto plano y retorna su hash bcrypt.
+- _verify_password(stored_hash, password): Verifica si una contrasena coincide con un hash almacenado. Soporta tanto hashes bcrypt actuales como hashes legacy (pbkdf2, scrypt).
+- _needs_rehash(stored_hash): Determina si un hash debe ser actualizado a bcrypt.
+
+Se eligio bcrypt porque es el estandar de la industria para almacenamiento seguro de contrasenas y esta recomendado por OWASP (Open Web Application Security Project).
 
 
 ## REQUISITOS PARA INSTALAR EL PROYECTO
@@ -403,16 +450,19 @@ Sabras que esta activo porque veras (.venv) al inicio de la linea en tu terminal
 ### Paso 5. Instalar las dependencias del backend
 
 ```
-pip install flask flask-cors flask-sqlalchemy python-dotenv networkx
+pip install -r requirements.txt
 ```
 
-Cada paquete cumple una funcion:
+Esto instala todas las dependencias listadas en el archivo requirements.txt, que incluye:
 
 - flask: el framework web del servidor.
 - flask-cors: permite que el frontend (en otro puerto) se comunique con el backend.
 - flask-sqlalchemy: conecta Flask con la base de datos usando el ORM.
+- flask-limiter: controla la cantidad de peticiones por segundo para evitar abusos.
 - python-dotenv: carga variables de entorno desde un archivo .env.
 - networkx: biblioteca de grafos para calcular rutas con Dijkstra.
+- bcrypt: algoritmo de hashing seguro para almacenar contrasenas.
+- gunicorn: servidor WSGI para despliegue en produccion.
 
 
 ### Paso 6. Inicializar la base de datos
@@ -480,24 +530,33 @@ Mapa_interactivo_ESIME_CULHUACAN/
 |
 |-- backend/                         Servidor en Python (Flask)
 |   |-- app.py                       Punto de entrada principal del servidor
-|   |-- config.py                    Configuracion de entornos
-|   |-- models.py                    Definicion de tablas de la base de datos
+|   |-- config.py                    Configuracion de entornos y bases de datos
 |   |-- kml_router.py                Motor de calculo de rutas con Dijkstra
-|   |-- audit_routes.py              Script de depuracion para probar rutas
-|   |-- init_parking.py              Genera espacios de estacionamiento
-|   |-- seed_parking.py              Pobla datos de estacionamiento
+|   |-- seed_map_data.py             Pobla datos iniciales del mapa
 |   |-- seed_inscripciones.py        Crea inscripciones de prueba
-|   |-- fix_inscriptions.py          Corrige inscripciones
+|   |-- init_parking.py              Genera espacios de estacionamiento
+|   |-- migrate_post_refactor.py     Script de migracion de datos
+|   |-- models/                      Paquete de modelos de datos
+|   |   |-- __init__.py              Re-exportacion de todos los modelos
+|   |   |-- database.py              Instancia central de SQLAlchemy
+|   |   |-- map_models.py            Modelos de mapa (bind: map.db)
+|   |   |-- school_models.py         Modelos academicos (bind: school.db)
 |   |-- middleware/
 |   |   |-- auth_middleware.py       Decoradores de autenticacion
 |   |-- repositories/
 |   |   |-- user_repository.py       Interfaz abstracta de usuarios
 |   |   |-- sqlite_repository.py     Implementacion con SQLite
 |   |-- services/
-|   |   |-- auth_service.py          Servicio de autenticacion
-|   |   |-- schedule_service.py      Servicio de horarios
+|   |   |-- auth_service.py          Autenticacion y hashing bcrypt
+|   |   |-- schedule_service.py      Consulta de horarios
+|   |   |-- parking_service.py       Logica de estacionamiento
+|   |   |-- school_adapter.py        Adaptador de datos institucionales
+|   |   |-- routing_service.py       Servicio de calculo de rutas
 |   |-- scripts/
-|       |-- import_horarios.py       Importa horarios desde SQL
+|   |   |-- import_horarios.py       Importa horarios desde SQL
+|   |-- instance/
+|       |-- map.db                   Base de datos del mapa
+|       |-- school.db                Base de datos academica
 |
 |-- frontend/                        Aplicacion React
 |   |-- index.html                   Pagina HTML raiz
@@ -524,6 +583,8 @@ Mapa_interactivo_ESIME_CULHUACAN/
 |       |   |-- api.js               Llamadas HTTP al servidor
 |       |-- data/
 |           |-- key_points.json      Puntos clave del campus
+|
+|-- requirements.txt                 Dependencias de Python
 ```
 
 
@@ -731,21 +792,28 @@ Endpoints principales:
 - /api/parking/spaces/<id>/status (PUT): Cambia el estado de un cajon. Valida que la accion sea logica (no puedes reservar un cajon ya ocupado). Para reservas, establece expiracion a 10 minutos.
 
 
-#### models.py
+#### models/ (paquete de modelos)
 
-Problema que resuelve: Define la estructura de toda la informacion que maneja el sistema. Sin este archivo, el programa no sabria que datos almacenar ni como organizarlos.
+Problema que resuelve: Define la estructura de toda la informacion que maneja el sistema. Sin estos archivos, el programa no sabria que datos almacenar ni como organizarlos.
 
-Como interactua: Todos los archivos del backend importan modelos de aqui. app.py los usa para consultar y modificar datos. Los servicios los usan para ejecutar logica de negocio.
+Estructura interna del paquete:
+
+- models/__init__.py: Re-exporta todos los modelos de ambas bases de datos para que el resto del codigo pueda importarlos con una sola linea (from models import Alumno, ParkingSpace).
+- models/database.py: Contiene la instancia central de SQLAlchemy (db = SQLAlchemy()). Esta instancia es compartida por todos los modelos.
+- models/map_models.py: Define los modelos que se almacenan en map.db: EdificioDB, CaminoDB, SavedPlace, ParkingSection, ParkingSpace, ParkingReservation y ParkingHistory.
+- models/school_models.py: Define los modelos que se almacenan en school.db: Alumno, Materia, Profesor, Salon, Grupo, MateriaGrupo, Horario e Inscripcion.
+
+Como interactua: Todos los archivos del backend importan modelos desde este paquete. app.py los usa para consultar y modificar datos. Los servicios los usan para ejecutar logica de negocio.
 
 Que pasaria si no existiera: No habria tablas en la base de datos. No se podrian guardar usuarios, horarios ni espacios de estacionamiento.
 
 Modelos clave y sus relaciones:
 
-El modelo Alumno es el centro del sistema. Un alumno tiene relaciones con inscripciones (sus materias), saved_places (sus lugares guardados), occupied_spaces (cajones que ocupa) y reserved_spaces (cajones que reserva).
+El modelo Alumno es el centro del sistema academico. Un alumno tiene relaciones con inscripciones (sus materias). El campo password_hash almacena la contrasena hasheada con bcrypt. El campo auth_provider indica si el usuario se autentica localmente o via Azure AD.
 
-El modelo MateriaGrupo es una tabla relacional que conecta Materia + Grupo + Profesor. Esta tabla existe porque una misma materia puede ser impartida por diferentes profesores a diferentes grupos.
+El modelo MateriaGrupo es una tabla relacional central que conecta Materia + Grupo + Profesor. Esta tabla existe porque una misma materia puede ser impartida por diferentes profesores a diferentes grupos. Cada MateriaGrupo tiene multiples horarios asociados.
 
-El modelo ParkingSpace tiene dos claves foraneas que apuntan a la misma tabla (alumnos): occupied_by y reserved_by. Esto permite que un cajon tenga un ocupante y un reservante diferentes.
+El modelo ParkingSpace usa referencias logicas (user_boleta como string) en lugar de claves foraneas reales para conectar con los alumnos. Esto es necesario porque el alumno vive en otra base de datos (school.db) y las claves foraneas de SQLite no pueden cruzar archivos de base de datos.
 
 
 #### kml_router.py
@@ -788,6 +856,39 @@ Problema que resuelve: Separa la logica de autenticacion de los endpoints. Si en
 Como interactua: app.py lo llama cuando un usuario intenta iniciar sesion o registrarse. El servicio usa el user_repository para acceder a la base de datos.
 
 Que pasaria si no existiera: La logica de autenticacion estaria mezclada con el codigo de las rutas en app.py, haciendo el codigo mas dificil de mantener y modificar.
+
+Sistema de hashing de contrasenas:
+
+Este archivo implementa un sistema completo de seguridad para contrasenas basado en bcrypt. Nunca almacena contrasenas en texto plano. El flujo funciona asi:
+
+```
+REGISTRO DE USUARIO NUEVO:
+  1. El usuario escribe su contrasena: "nueva123"
+  2. _hash_password("nueva123") la convierte en:
+     "$2b$12$0K9cVIN3l8kss..." (hash irreversible)
+  3. Solo el hash se guarda en la columna password_hash
+  4. La contrasena original nunca se almacena
+
+INICIO DE SESION:
+  1. El usuario escribe su contrasena: "nueva123"
+  2. _verify_password(hash_almacenado, "nueva123")
+  3. bcrypt calcula el hash de "nueva123" con la misma sal
+  4. Compara el resultado con el hash almacenado
+  5. Si coinciden, la contrasena es correcta
+  6. Si el hash es legacy (pbkdf2/scrypt), lo migra a bcrypt
+
+MIGRACION TRANSPARENTE:
+  1. Usuario con hash antiguo (pbkdf2) intenta login
+  2. _verify_password detecta formato legacy
+  3. Verifica con werkzeug (libreria anterior)
+  4. Si la contrasena es correcta:
+     a. _needs_rehash() retorna True
+     b. Se genera nuevo hash bcrypt
+     c. Se actualiza la base de datos
+  5. En el siguiente login, ya usara bcrypt
+```
+
+Este enfoque permite actualizar el algoritmo de seguridad sin obligar a los usuarios a cambiar sus contrasenas. La migracion ocurre de forma invisible durante el login normal.
 
 
 #### services/schedule_service.py
@@ -1026,22 +1127,193 @@ alumno = cursor.fetchone()
 
 ### Tablas del proyecto y relaciones
 
-Diagrama de relaciones:
+Diagrama de relaciones separado por base de datos:
 
 ```
+BASE DE DATOS SCHOOL (instance/school.db)
+=========================================
 alumnos
-  |--- inscripciones ---| materias_grupos |--- horarios --- salones --- edificios
-  |                     |                 |
-  |--- saved_places     |--- materias     |
-  |                     |--- grupos
-  |--- parking_spaces   |--- profesores
-  |    (occupied_by)
-  |--- parking_spaces
-       (reserved_by)
+  |--- inscripciones ---| materias_grupos |--- horarios --- salones
+                        |                 |
+                        |--- materias     |
+                        |--- grupos       |
+                        |--- profesores
+
+BASE DE DATOS MAP (instance/map.db)
+====================================
+edificios
+
+caminos
+
+saved_places (referencia logica a alumnos.boleta)
 
 parking_sections --- parking_spaces --- parking_reservations
                                    --- parking_history
+               (occupied_by y reserved_by son referencias logicas
+                a alumnos.boleta, no claves foraneas reales)
 ```
+
+Las flechas entre tablas indican relaciones de clave foranea. Dentro de cada base de datos, las relaciones son claves foraneas reales que SQLite y SQLAlchemy verifican automaticamente. Entre bases de datos diferentes, las relaciones son logicas: se almacena la boleta del alumno como texto y se valida a nivel de aplicacion.
+
+
+## ESTRUCTURAS DE DATOS UTILIZADAS EN EL PROYECTO
+
+Esta seccion explica las estructuras de datos fundamentales que el proyecto utiliza internamente. Una estructura de datos es la forma en que un programa organiza la informacion en memoria para poder acceder a ella y modificarla de manera eficiente.
+
+
+### Tablas hash (diccionarios)
+
+Una tabla hash (llamada diccionario en Python y objeto en JavaScript) almacena pares de clave-valor. Permite buscar cualquier valor a partir de su clave en tiempo constante O(1), sin importar cuantos elementos contenga.
+
+Donde se usa en el proyecto:
+
+- Los hashes bcrypt de contrasenas. Internamente, bcrypt usa una tabla hash para mapear cada byte de la contrasena a su posicion en el cifrado Blowfish. La sal (salt) se almacena como parte del propio hash, permitiendo verificacion sin almacenar datos adicionales.
+- JSON como estructura de intercambio. Toda la comunicacion entre frontend y backend usa JSON, que es esencialmente un diccionario anidado. Ejemplo: cuando el backend devuelve un usuario, lo convierte a un diccionario Python con to_dict() y Flask lo serializa a JSON.
+- localStorage en el frontend. Almacena datos del usuario y del coche estacionado como pares clave-valor. La clave "user" contiene un objeto JSON con los datos del alumno. La clave "mi_coche_gps" contiene las coordenadas del coche.
+- El estado de React (useState). Internamente, React almacena los estados de cada componente en una tabla hash donde la clave es la posicion del hook en el componente.
+
+Ejemplo concreto:
+
+```python
+# Diccionario Python (tabla hash)
+usuario = {
+    "boleta": "2025350215",
+    "nombre": "Omar Sosa",
+    "carrera": "Computacion"
+}
+# Buscar por clave: O(1)
+nombre = usuario["nombre"]  # "Omar Sosa"
+```
+
+
+### Grafos ponderados
+
+Un grafo es una estructura de datos compuesta por nodos (vertices) y conexiones entre ellos (aristas). Cuando cada conexion tiene un valor numerico asociado (por ejemplo, la distancia en metros), se llama grafo ponderado.
+
+Donde se usa en el proyecto:
+
+- El motor de rutas (kml_router.py) construye un grafo ponderado donde cada interseccion de caminos es un nodo y cada segmento de camino es una arista con peso igual a la distancia en metros calculada con la formula de Haversine. NetworkX almacena este grafo internamente usando listas de adyacencia (diccionarios de diccionarios).
+
+Ejemplo concreto:
+
+```python
+# Representacion interna del grafo en NetworkX
+grafo = {
+    "Entrada": {"Edificio1": {"weight": 100}, "Cafeteria": {"weight": 250}},
+    "Edificio1": {"Entrada": {"weight": 100}, "Cafeteria": {"weight": 80}},
+    "Cafeteria": {"Entrada": {"weight": 250}, "Edificio1": {"weight": 80}}
+}
+```
+
+Complejidad de busqueda de ruta: El algoritmo de Dijkstra recorre este grafo en tiempo O((V + E) log V), donde V es el numero de nodos y E el numero de aristas.
+
+
+### Tablas relacionales (SQL)
+
+Una tabla relacional organiza datos en filas y columnas, similar a una hoja de calculo. Cada fila es un registro (por ejemplo, un alumno) y cada columna es un atributo (por ejemplo, la boleta). Las tablas se conectan entre si mediante claves foraneas.
+
+Donde se usa en el proyecto:
+
+- Las 15 tablas del sistema se organizan en dos bases de datos SQLite. Cada modelo de SQLAlchemy define una tabla con columnas tipadas (Integer, String, Float, DateTime, Boolean). Las relaciones entre tablas se definen con db.ForeignKey y db.relationship.
+- La tabla materias_grupos es un ejemplo clasico de tabla relacional intermedia (tabla puente). Conecta tres entidades: una materia, un grupo y un profesor. Sin esta tabla, habria que duplicar informacion de la materia en cada horario.
+- La tabla inscripciones es otra tabla puente que conecta alumnos con materias_grupos. Cada fila representa que un alumno especifico esta inscrito en una materia especifica de un grupo especifico.
+
+Ejemplo concreto de como se relacionan las tablas:
+
+```
+Pregunta: "Que clases tiene Omar Sosa hoy miercoles?"
+
+Paso 1: Buscar en ALUMNOS donde boleta = '2025350215'
+        Resultado: alumno_id = 2
+
+Paso 2: Buscar en INSCRIPCIONES donde alumno_id = 2
+        Resultado: materia_grupo_ids = [103, 104, 105, 106, 107, 108]
+
+Paso 3: Buscar en HORARIOS donde materia_grupo_id IN [103...108]
+        Y dia_semana = 3 (miercoles)
+        Resultado: lista de horarios del miercoles
+
+Paso 4: Para cada horario, obtener el nombre de la materia
+        desde MATERIAS via MATERIAS_GRUPOS
+```
+
+
+### Arreglos y listas
+
+Un arreglo (array) es una secuencia ordenada de elementos accesibles por indice numerico. En Python se llaman listas y en JavaScript arrays. Son la estructura de datos mas basica y frecuente.
+
+Donde se usa en el proyecto:
+
+- Las rutas calculadas por Dijkstra. El resultado es una lista de coordenadas: [[19.3294, -99.1116], [19.3295, -99.1118], ...]. Leaflet recibe este arreglo y dibuja una Polyline conectando cada punto.
+- Los espacios de estacionamiento se organizan en arreglos dentro de cada seccion. El frontend agrupa los cajones por fila y por seccion usando arreglos anidados.
+- Los resultados de busqueda en el mapa. Cuando el usuario escribe en la barra de busqueda, el frontend filtra el arreglo de key_points.json y devuelve solo los que coinciden.
+
+
+### Colas de prioridad
+
+Una cola de prioridad es una estructura donde cada elemento tiene un valor de prioridad. El elemento con la prioridad mas alta (o mas baja, segun la implementacion) se extrae primero.
+
+Donde se usa en el proyecto:
+
+- El algoritmo de Dijkstra internamente usa una cola de prioridad (min-heap) para seleccionar siempre el nodo no visitado con la menor distancia acumulada. NetworkX implementa esto usando el modulo heapq de Python.
+- El sistema de notificaciones de clases. NotificationContext ordena las clases del dia por hora de inicio y verifica la mas proxima primero.
+
+
+## SEGURIDAD DEL SISTEMA
+
+Esta seccion explica las medidas de seguridad implementadas en el proyecto y los principios detras de cada una.
+
+
+### Almacenamiento seguro de contrasenas
+
+Regla fundamental: las contrasenas nunca se almacenan en texto plano. Si un atacante obtiene acceso a la base de datos, no puede leer las contrasenas de los usuarios.
+
+El sistema utiliza bcrypt para convertir cada contrasena en un hash irreversible antes de guardarla. El proceso completo es:
+
+```
+Contrasena original:  "nueva123"
+                         |
+                         v
+bcrypt.gensalt() genera sal aleatoria: "$2b$12$Rn7mG..."
+                         |
+                         v
+bcrypt.hashpw() aplica 12 rondas de Blowfish
+                         |
+                         v
+Hash almacenado:  "$2b$12$Rn7mG.../a1b2c3d4e5f6..."
+                         |
+                         v
+Se guarda en la columna password_hash de la tabla alumnos
+```
+
+Importante: ni siquiera el administrador del servidor puede ver la contrasena original. Si un usuario olvida su contrasena, no se puede recuperar: hay que generar una nueva.
+
+
+### Migracion transparente de algoritmos
+
+Cuando se actualiza el algoritmo de hashing (como ocurrio al migrar de pbkdf2 a bcrypt), el sistema implementa una estrategia llamada migracion transparente. El proceso detecta automaticamente el formato del hash almacenado durante el login:
+
+- Si el hash comienza con "$2b$", es bcrypt actual. Se verifica con bcrypt.checkpw().
+- Si el hash comienza con "pbkdf2:" o "scrypt:", es un formato anterior. Se verifica con la funcion de werkzeug. Si la contrasena es correcta, se genera un nuevo hash bcrypt y se reemplaza en la base de datos.
+
+De esta forma, los usuarios no necesitan cambiar sus contrasenas manualmente. La migracion ocurre de forma invisible la proxima vez que inician sesion.
+
+
+### Validacion de datos de entrada
+
+Todos los datos que el usuario envia al servidor se validan antes de procesarlos:
+
+- Las boletas deben ser cadenas de 7 a 15 digitos numericos.
+- Los nombres deben tener entre 2 y 100 caracteres.
+- Las contrasenas deben tener al menos 6 caracteres.
+- Los correos electronicos deben tener formato valido.
+
+Estas validaciones previenen errores y protegen contra ataques de inyeccion.
+
+
+### Proteccion contra enumeracion de usuarios
+
+Cuando alguien intenta iniciar sesion con una boleta que no existe, el sistema no revela si el problema es la boleta o la contrasena. Siempre responde con un mensaje generico: "Credenciales incorrectas". Esto evita que un atacante pueda determinar que boletas estan registradas en el sistema.
 
 
 ## EJEMPLOS PRACTICOS
