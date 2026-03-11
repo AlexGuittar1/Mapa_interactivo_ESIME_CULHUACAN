@@ -639,7 +639,7 @@ path = nx.shortest_path(G, source=punto_a, target=punto_b, weight='weight')
 # path es una lista de coordinadas que forman la ruta optima
 ```
 
-## 3.8 WERKZEUG (HASHING DE CONTRASENAS)
+## 3.8 BCRYPT (HASHING SEGURO DE CONTRASENAS)
 
 ### Que es el hashing
 
@@ -649,51 +649,120 @@ Analogia: El hashing es como hacer jugo de naranja. Puedes convertir naranjas en
 
 Otra analogia: Es como una huella digital. Cada persona tiene una huella unica, pero no puedes reconstruir a la persona a partir de la huella. Si alguien te muestra su dedo, puedes comparar su huella con la que tienes registrada, pero nunca podrias recrear el dedo a partir de la huella.
 
-### Como se almacena una contrasena
+### Que es bcrypt y por que se eligio
 
-Cuando un usuario se registra con la contrasena "mipass123", el sistema NO almacena "mipass123" en la base de datos. En su lugar:
+bcrypt es un algoritmo de hashing de contrasenas disenado especificamente para ser lento de forma deliberada. Fue creado en 1999 y sigue siendo uno de los algoritmos mas recomendados para almacenar contrasenas, avalado por OWASP (Open Web Application Security Project), la organizacion internacional de referencia en seguridad web.
 
-```python
-from werkzeug.security import generate_password_hash
+Por que "lento" es bueno para contrasenas: Cuando un atacante roba una base de datos, intenta adivinar contrasenas probando millones de combinaciones por segundo. Los algoritmos rapidos como SHA-256 o MD5 permiten probar miles de millones de contrasenas por segundo en hardware moderno. bcrypt esta disenado para tomar aproximadamente 100 milisegundos por cada intento, lo que reduce la velocidad de un ataque de fuerza bruta en un factor de millones. Para un usuario normal esperando medio segundo para hacer login, esto es imperceptible. Pero para un atacante, cada intento le cuesta muchisimo mas tiempo.
 
-hash = generate_password_hash("mipass123", method='pbkdf2:sha256', salt_length=16)
-# Resultado: "pbkdf2:sha256:1000000$WrXjhXT4Bydsy1xW$7a2f..."
+Analogia: Imagina que para abrir una caja fuerte necesitas girar un dial 12 veces (las 12 rondas de bcrypt). Si eres el dueno y tienes la combinacion, tarda medio segundo. Pero un ladron que intenta todas las combinaciones posibles necesita girar el dial 12 veces por cada intento, lo que hace que probar millones de combinaciones sea extremadamente lento.
+
+### Como funciona bcrypt internamente (paso a paso)
+
+bcrypt funciona en cuatro etapas:
+
+1. Recibe la contrasena en texto plano, por ejemplo "nueva123".
+
+2. Genera una sal (salt) aleatoria. La sal es una cadena de caracteres aleatoria que se agrega a la contrasena antes de calcular el hash. Esto asegura que dos usuarios con la misma contrasena tengan hashes completamente diferentes. Si no hubiera sal, un atacante podria pre-calcular hashes para millones de contrasenas comunes una sola vez y compararlos contra toda la base de datos (esto se llama ataque de tablas rainbow).
+
+Ejemplo con sal:
+- Usuario 1: contrasena "abc123", sal generada "X4r9mP" → hash "$2b$12$X4r9mP...a9f3..."
+- Usuario 2: contrasena "abc123", sal generada "Kw7nJq" → hash "$2b$12$Kw7nJq...7d2e..."
+- Misma contrasena, hashes completamente diferentes porque la sal es diferente.
+
+3. Ejecuta multiples rondas del cifrado Blowfish. El numero de rondas se expresa como un factor de costo: con factor 12 (el que usa este proyecto), se ejecutan 2^12 = 4,096 iteraciones internas. Cada ronda toma el resultado de la anterior y lo transforma de nuevo. Esto es lo que hace a bcrypt intencionalmente lento.
+
+4. Produce una cadena final de 60 caracteres como:
+```
+$2b$12$Rn7mGk8X9Yq2TvW5pLaN3.a1b2c3d4e5f6g7h8i9j0k1l2m3n4
 ```
 
-El hash almacenado contiene tres partes separadas por el simbolo $:
-- pbkdf2:sha256:1000000 → El algoritmo (PBKDF2), la funcion hash (SHA-256) y el numero de iteraciones (1 millon).
-- WrXjhXT4Bydsy1xW → El salt (valor aleatorio unico para cada usuario).
-- 7a2f... → El hash resultante.
+Esta cadena contiene toda la informacion necesaria para verificar la contrasena despues:
+- $2b$ → Indica que es un hash bcrypt (version 2b).
+- $12$ → El factor de costo (12 rondas de Blowfish).
+- Rn7mGk8X9Yq2TvW5pLaN3. → Los primeros 22 caracteres despues del factor de costo son la sal.
+- a1b2c3d4e5f6g7h8i9j0k1l2m3n4 → El hash resultante.
 
-### El salt y por que es importante
+### Como se almacena una contrasena en este proyecto
 
-El salt es un valor aleatorio que se genera para cada usuario. Se agrega a la contrasena antes de hashearla. Sin salt, dos usuarios con la misma contrasena tendrian el mismo hash, lo que facilitaria ataques de diccionario.
+Cuando un usuario se registra, el sistema NUNCA almacena la contrasena en texto plano. En su lugar usa el metodo _hash_password del servicio de autenticacion:
 
-Con salt:
-- Usuario 1: contrasena "abc123", salt "XYZW" → hash "a9f3..."
-- Usuario 2: contrasena "abc123", salt "MNOP" → hash "7d2e..."
+```python
+import bcrypt
 
-Misma contrasena, hashes completamente diferentes. Un atacante no puede precomputar hashes para contrasenas comunes porque cada salt es diferente.
+def _hash_password(self, password):
+    return bcrypt.hashpw(
+        password.encode('utf-8'),     # Convertir texto a bytes
+        bcrypt.gensalt()               # Generar sal aleatoria
+    ).decode('utf-8')                  # Convertir bytes resultantes a texto
+```
+
+Explicacion linea por linea:
+- password.encode('utf-8'): bcrypt requiere la contrasena como bytes (no como texto). encode('utf-8') convierte el texto "nueva123" en su representacion binaria.
+- bcrypt.gensalt(): Genera una sal aleatoria con factor de costo 12 por defecto. La sal se ve como: $2b$12$Rn7mGk8X9Yq2TvW5pLaN3.
+- bcrypt.hashpw(): Combina la contrasena y la sal, ejecuta las 4,096 rondas de Blowfish y produce el hash final.
+- .decode('utf-8'): El resultado viene como bytes; lo convertimos a texto para poder guardarlo en la columna de la base de datos.
 
 ### Como se verifica una contrasena
 
-Cuando un usuario hace login:
+Cuando un usuario hace login, el sistema no puede "deshashear" el hash almacenado. En cambio, re-calcula el hash de la contrasena proporcionada y compara:
 
 ```python
-from werkzeug.security import check_password_hash
+def _verify_password(self, stored_hash, password):
+    # Si el hash es formato legacy (de la version anterior del sistema)
+    if stored_hash.startswith(('pbkdf2:', 'scrypt:')):
+        return werkzeug_check(stored_hash, password)  # Verificar con libreria antigua
 
-# check_password_hash extrae el salt del hash almacenado,
-# aplica el mismo proceso a la contrasena proporcionada
-# y compara los resultados
-check_password_hash(stored_hash, "mipass123")  # True
-check_password_hash(stored_hash, "otrapass")   # False
+    # Si el hash es bcrypt (formato actual)
+    try:
+        return bcrypt.checkpw(
+            password.encode('utf-8'),       # Contrasena proporcionada
+            stored_hash.encode('utf-8')     # Hash almacenado
+        )
+    except (ValueError, TypeError):
+        return False
 ```
 
-El proceso interno es:
-1. Extraer el salt del hash almacenado.
-2. Hashear la contrasena proporcionada con ese salt y el mismo numero de iteraciones.
+El proceso interno de bcrypt.checkpw() es:
+1. Extraer la sal del hash almacenado (los primeros 29 caracteres de $2b$12$...).
+2. Hashear la contrasena proporcionada usando esa sal y el mismo factor de costo.
 3. Comparar el hash resultante con el hash almacenado.
-4. Si son iguales, la contrasena es correcta.
+4. Si son identicos, la contrasena es correcta. Si difieren en un solo caracter, es incorrecta.
+
+Ejemplo practico:
+```python
+stored_hash = "$2b$12$Rn7mGk8X9Yq2TvW5pLaN3.a1b2c3d4e5f6..."
+
+bcrypt.checkpw("nueva123".encode(), stored_hash.encode())  # True  → contrasena correcta
+bcrypt.checkpw("nueva124".encode(), stored_hash.encode())  # False → contrasena incorrecta
+```
+
+### Migracion transparente de algoritmos
+
+Antes de implementar bcrypt, el proyecto usaba un algoritmo mas antiguo llamado PBKDF2-SHA256 a traves de la libreria werkzeug. Los hashes antiguos se ven asi:
+```
+pbkdf2:sha256:1000000$WrXjhXT4Bydsy1xW$7a2f...
+```
+
+Cuando se actualizo a bcrypt, no se podia simplemente borrar todos los hashes antiguos porque los usuarios tendrian que crear contrasenas nuevas. En cambio, se implemento un sistema de migracion transparente:
+
+```python
+def _needs_rehash(self, stored_hash):
+    """Detecta si un hash usa el formato antiguo"""
+    if not stored_hash:
+        return False
+    return stored_hash.startswith(('pbkdf2:', 'scrypt:'))
+```
+
+El flujo completo de migracion:
+1. El usuario intenta hacer login con su contrasena.
+2. El sistema detecta que el hash almacenado empieza con "pbkdf2:" (formato antiguo).
+3. Verifica la contrasena usando werkzeug (la libreria anterior).
+4. Si la contrasena es correcta, genera un nuevo hash bcrypt de la misma contrasena.
+5. Reemplaza el hash antiguo por el nuevo hash bcrypt en la base de datos.
+6. En el siguiente login, el sistema usara bcrypt directamente.
+
+De esta forma los usuarios nunca necesitan cambiar sus contrasenas. La migracion ocurre de forma invisible durante el login normal.
 
 
 # CAPITULO 4. ESTRUCTURA DEL PROYECTO
@@ -944,7 +1013,7 @@ Analogia: El sistema de autenticacion funciona como la entrada de un edificio co
 
 El sistema contempla dos metodos de autenticacion:
 
-1. Autenticacion local: El usuario se registra con su boleta, nombre y contrasena. El sistema almacena la contrasena de forma segura usando hashing con PBKDF2-SHA256. Este es el metodo utilizado actualmente.
+1. Autenticacion local: El usuario se registra con su boleta, nombre y contrasena. El sistema almacena la contrasena de forma segura usando hashing con bcrypt, un algoritmo disenado especificamente para proteger contrasenas. Antes del 10 de marzo de 2026, el sistema usaba PBKDF2-SHA256; todos los hashes antiguos se migran automaticamente a bcrypt durante el login. Este es el metodo utilizado actualmente.
 
 2. Autenticacion con Microsoft Azure (placeholder): El sistema incluye la infraestructura para autenticacion con cuentas de Outlook institucionales usando MSAL (Microsoft Authentication Library). Esta funcionalidad aun no esta completa pero la estructura esta preparada para su integracion futura. Cuando se complete, los alumnos podran usar su cuenta @alumno.ipn.mx para acceder al sistema sin necesidad de registrarse.
 
@@ -991,7 +1060,7 @@ Explicacion detallada de cada campo:
 
 - auth_provider: Indica como se autentico el usuario la primera vez. Valores posibles: "local" (registro manual), "azure" (Microsoft), "google". Esto ayuda al sistema a saber que metodo de autenticacion usar.
 
-- password_hash: Hash de la contrasena generado con PBKDF2-SHA256. Tiene una longitud maxima de 256 caracteres para acomodar el formato completo del hash (algoritmo + iteraciones + salt + hash). Es nullable=True para acomodar usuarios que fueron creados antes de implementar contrasenas y usuarios que usan Azure AD.
+- password_hash: Hash de la contrasena generado con bcrypt (anteriormente PBKDF2-SHA256, migrado automaticamente). Un hash bcrypt se ve asi: "$2b$12$Rn7mGk8X9Yq2TvW5..." y tiene exactamente 60 caracteres. El campo tiene una longitud maxima de 256 caracteres para acomodar tanto el formato bcrypt actual como el formato legacy PBKDF2 (que es mas largo). Es nullable=True para acomodar usuarios que fueron creados antes de implementar contrasenas y usuarios que usan Azure AD.
 
 - last_login: Fecha y hora del ultimo inicio de sesion exitoso. Se actualiza cada vez que el usuario hace login. Util para estadisticas y para identificar cuentas inactivas.
 
@@ -1156,18 +1225,16 @@ BOLETA_PATTERN es una expresion regular: r'^\d{7,15}$'
 - $ significa "termina aqui"
 - Entonces la expresion completa dice: "la cadena debe contener SOLO entre 7 y 15 digitos"
 
-Paso 7. Si todas las validaciones pasan, se hashea la contrasena:
+Paso 7. Si todas las validaciones pasan, se hashea la contrasena con bcrypt:
 
 ```python
-password_hash = generate_password_hash(
-    password,
-    method='pbkdf2:sha256',
-    salt_length=16
-)
+password_hash = self._hash_password(password)
+# Internamente ejecuta:
+# bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 ```
 
-Este proceso toma la contrasena "miContrasena123", genera un salt aleatorio de 16 bytes, ejecuta 1,000,000 de iteraciones de SHA-256 y produce un hash como:
-"pbkdf2:sha256:1000000$WrXjhXT4Bydsy1xW$7a2f6b..."
+Este proceso toma la contrasena "miContrasena123", genera una sal aleatoria, ejecuta 4,096 rondas del cifrado Blowfish (factor de costo 12) y produce un hash como:
+"$2b$12$Rn7mGk8X9Yq2TvW5pLaN3.a1b2c3d4e5f6g7h8i9j0k1l2m3n4"
 
 Paso 8. El repositorio crea el registro en la base de datos:
 
@@ -1229,20 +1296,28 @@ def _login_local(self, boleta, password):
         return {"needs_password": True, "boleta": alumno.boleta}, None
 
     # Paso 4e: Verificar contrasena contra hash almacenado
-    if not check_password_hash(alumno.password_hash, password):
+    if not self._verify_password(alumno.password_hash, password):
         return None, "Boleta o contrasena incorrecta"
 
-    # Paso 4f: Login exitoso - actualizar last_login
+    # Paso 4f: Migracion transparente de algoritmo de hashing
+    #          Si el hash usa un formato antiguo (pbkdf2/scrypt),
+    #          se re-hashea con bcrypt para actualizar la seguridad
+    if self._needs_rehash(alumno.password_hash):
+        alumno.password_hash = self._hash_password(password)
+
+    # Paso 4g: Login exitoso - actualizar last_login
     alumno.last_login = datetime.utcnow()
     db.session.commit()
     return alumno.to_dict(), None
 ```
 
-Lo critico del paso 4c y 4e es que el mensaje de error es IDENTICO:
+Lo critico de los pasos 4c y 4e es que el mensaje de error es IDENTICO:
 - Boleta no existe → "Boleta o contrasena incorrecta"
 - Contrasena incorrecta → "Boleta o contrasena incorrecta"
 
 Esto es una medida de seguridad llamada "prevencion de enumeracion de usuarios". Si los mensajes fueran diferentes ("Usuario no encontrado" vs "Contrasena incorrecta"), un atacante podria descubrir que boletas estan registradas.
+
+El paso 4f es la migracion transparente de algoritmos: si el hash almacenado usa el formato antiguo PBKDF2, se genera un nuevo hash con bcrypt y se actualiza en la base de datos. El usuario nunca se entera de este cambio; su experiencia de login es identica.
 
 ## 5.5 PROCESO DE LOGOUT
 
@@ -1290,7 +1365,7 @@ export async function setPassword(boleta, password) {
 }
 ```
 
-8. AuthService hashea la contrasena y la almacena:
+8. AuthService hashea la contrasena con bcrypt y la almacena:
 
 ```python
 def set_password(self, data):
@@ -1301,10 +1376,12 @@ def set_password(self, data):
     if not alumno:
         return None, "Usuario no encontrado"
 
-    alumno.password_hash = generate_password_hash(password, method='pbkdf2:sha256', salt_length=16)
+    alumno.password_hash = self._hash_password(password)  # Genera hash bcrypt
     db.session.commit()
     return alumno.to_dict(), None
 ```
+
+Nota: self._hash_password() internamente ejecuta bcrypt.hashpw() con una sal aleatoria, produciendo un hash seguro de 60 caracteres que se almacena en la columna password_hash.
 
 9. A partir de ese momento, el usuario puede hacer login normalmente con boleta + contrasena.
 
@@ -2089,32 +2166,45 @@ Y pasa el valor de boleta como un parametro separado, NO como parte de la cadena
 
 Las contrasenas NUNCA se almacenan en texto plano. Si un atacante obtuviera acceso a la base de datos (por ejemplo, robando el archivo school.db), no podria leer las contrasenas porque estan hasheadas.
 
-El sistema utiliza PBKDF2 (Password-Based Key Derivation Function 2):
+El sistema utiliza bcrypt como algoritmo principal de hashing:
 
-- Algoritmo interno: SHA-256 (Secure Hash Algorithm de 256 bits)
-- Iteraciones: 1,000,000 (un millon)
-- Salt: Aleatorio de 16 bytes, unico para cada usuario
+- Algoritmo de cifrado: Blowfish (cifrado simetrico adaptado para hashing)
+- Factor de costo: 12 (equivale a 2^12 = 4,096 rondas internas)
+- Sal: Aleatoria de 16 bytes, generada automaticamente para cada hash
+- Formato de salida: Cadena de 60 caracteres que comienza con $2b$12$
 
-### Por que un millon de iteraciones
+### Por que bcrypt y no SHA-256 o MD5 
 
-Cada iteracion aplica SHA-256 al resultado de la iteracion anterior. Esto hace que calcular un solo hash tome mucho tiempo computacional (milisegundos). Para un usuario normal esperando medio segundo para hacer login, esto es imperceptible. Pero para un atacante que intenta millones de contrasenas, cada intento requiere milisegundos, lo que convierte un ataque de segundos en uno de anos.
+SHA-256 y MD5 son funciones de hash de proposito general. Fueron disenadas para ser rapidas, lo cual es ideal para verificar integridad de archivos pero desastroso para contrasenas. Un atacante con una GPU moderna puede calcular miles de millones de hashes SHA-256 por segundo.
 
-Ejemplo con numeros:
-- Sin iteraciones: 1 millon de contrasenas se prueban en ~1 segundo.
-- Con 1 millon de iteraciones: 1 millon de contrasenas se prueban en ~16 minutos.
-- Con salt unico: El atacante debe repetir el proceso COMPLETO para cada usuario.
+bcrypt resuelve este problema al ser deliberadamente lento. Con factor de costo 12, cada intento de hash toma alrededor de 100 milisegundos. Para un usuario haciendo login, 100ms es imperceptible. Para un atacante intentando un millon de contrasenas, son 100,000 segundos (mas de un dia).
+
+Comparacion practica:
+- MD5: 10 mil millones de intentos por segundo en GPU → contrasena de 6 digitos crackeada en 0.001 segundos.
+- SHA-256: 5 mil millones de intentos por segundo en GPU → contrasena de 6 digitos crackeada en 0.002 segundos.
+- bcrypt (factor 12): 10 intentos por segundo por nucleo → contrasena de 6 digitos crackeada en ~2.5 dias.
 
 ### Estructura del hash almacenado
 
 ```
+$2b$12$Rn7mGk8X9Yq2TvW5pLaN3.a1b2c3d4e5f6g7h8i9j0k1l2m3n4
+```
+
+- $2b$ → Identificador del algoritmo bcrypt (version 2b, la mas actual y compatible).
+- $12$ → Factor de costo. El numero de rondas de Blowfish es 2 elevado a este numero (2^12 = 4,096).
+- Rn7mGk8X9Yq2TvW5pLaN3. → Sal aleatoria (22 caracteres en base64). Unica para cada usuario.
+- a1b2c3d4e5f6g7h8i9j0k1l2m3n4 → Hash resultante del proceso completo.
+
+Todo se almacena en el mismo string de 60 caracteres para que bcrypt.checkpw pueda extraer la sal y el factor de costo y reproducir exactamente el mismo proceso.
+
+### Migracion de algoritmos legacy
+
+Antes de marzo de 2026, el proyecto usaba PBKDF2-SHA256 via werkzeug, con hashes como:
+```
 pbkdf2:sha256:1000000$WrXjhXT4Bydsy1xW$7a2f6b3c9d1e5f8a...
 ```
 
-Parte 1: pbkdf2:sha256:1000000 → Algoritmo, funcion hash, iteraciones.
-Parte 2: WrXjhXT4Bydsy1xW → Salt (unico para cada usuario).
-Parte 3: 7a2f6b3c9d1e5f8a... → Hash resultante.
-
-Todo se almacena en el mismo string para que check_password_hash pueda extraer los parametros y reproducir el proceso.
+Durante la actualizacion a bcrypt, se implemento migracion transparente: cuando un usuario con hash legacy hace login, su contrasena se re-hashea automaticamente con bcrypt sin que el usuario lo note. El metodo _needs_rehash() detecta hashes que comienzan con "pbkdf2:" o "scrypt:" y los marca para actualizacion.
 
 ## 8.3 VALIDACION DE INPUTS EN DETALLE
 
@@ -2222,9 +2312,9 @@ USUARIO                    FRONTEND (React)              BACKEND (Flask)        
    |                            |                              |-- find_by_boleta()------->|
    |                            |                              |                           |--SELECT * FROM alumnos
    |                            |                              |                           |  WHERE boleta=?
-   |                            |                              |                           |--Retorna: None
-   |                            |                              |-- generate_password_hash()|
-   |                            |                              |   (1M iteraciones SHA256) |
+   |                            |                              |--Retorna: None
+   |                            |                              |-- _hash_password()        |
+   |                            |                              |   (bcrypt 4096 rondas)    |
    |                            |                              |-- create()--------------->|
    |                            |                              |                           |--INSERT INTO alumnos
    |                            |                              |                           |  VALUES(...)
@@ -2269,6 +2359,9 @@ USUARIO                    FRONTEND (React)              BACKEND (Flask)        
    |                            |<--401 "Boleta o pass incor"--|                           |
    |                            |                              |                           |
    |                            |                              | C2: Pass correcta         |
+   |                            |                              |-- _needs_rehash()?        |
+   |                            |                              |   SI → _hash_password()   |
+   |                            |                              |   bcrypt + UPDATE hash    |
    |                            |                              |-- actualizar last_login-->|
    |                            |                              |                           |--UPDATE alumnos SET
    |                            |                              |                           |  last_login = NOW()
@@ -2451,9 +2544,11 @@ requirements.txt contiene la lista de librerias necesarias:
 Flask             → Framework web
 flask-cors        → Permite peticiones del frontend
 flask-sqlalchemy  → ORM para base de datos
+flask-limiter     → Rate limiting para seguridad
 networkx          → Algoritmos de grafos
 python-dotenv     → Variables de entorno desde .env
-flask-limiter     → Rate limiting para seguridad
+bcrypt            → Hashing seguro de contrasenas
+gunicorn          → Servidor WSGI para produccion
 ```
 
 pip descarga cada libreria de PyPI (Python Package Index), un repositorio publico con miles de librerias de Python, y la instala en el entorno virtual.
@@ -2663,6 +2758,378 @@ Las pruebas automatizadas permiten:
 - Refactorizar codigo con confianza (si las pruebas pasan, el cambio es seguro).
 - Documentar el comportamiento esperado del sistema.
 - Ejecutar todas las pruebas en segundos con un solo comando: pytest.
+
+
+# CAPITULO 12. ESTRUCTURAS DE DATOS UTILIZADAS EN EL PROYECTO
+
+Este capitulo explica las estructuras de datos que el proyecto utiliza internamente. Una estructura de datos es una forma de organizar informacion para poder acceder a ella, modificarla y buscarla de manera eficiente. Elegir la estructura correcta para cada problema es una habilidad fundamental en ingenieria de software.
+
+Analogia: Asi como en la vida real organizas la ropa en un closet (por tipo, color o temporada), la cocina con cajones separados para cubiertos, platos y vasos, y la biblioteca con estantes por tema, en programacion organizas los datos en diferentes estructuras segun como necesites usarlos. Usar la estructura equivocada es como guardar los cubiertos en una pila desordenada: funciona, pero es lento e ineficiente.
+
+## 12.1 TABLAS HASH (DICCIONARIOS)
+
+### Que es una tabla hash
+
+Una tabla hash asocia claves con valores, permitiendo buscar un valor por su clave en tiempo constante O(1), es decir, instantaneamente sin importar cuantos datos haya. En Python se llaman diccionarios (dict) y en JavaScript se llaman objetos (object).
+
+Analogia: Una tabla hash es como un directorio telefonico. Si buscas "Omar Sosa", no necesitas leer todos los nombres desde la A hasta la O. Vas directamente a la seccion "S" (la funcion hash te dice donde buscar) y encuentras el numero instantaneamente. Sin importar si el directorio tiene 100 o 1 millon de entradas, la busqueda es igual de rapida.
+
+### Donde se usan en el proyecto
+
+1. Hashes de contrasenas (bcrypt). Cada vez que un alumno se registra, su contrasena se transforma en un hash unico e irreversible:
+```python
+# El hash ES el valor transformado de la contrasena
+hash_resultado = bcrypt.hashpw("nueva123".encode(), bcrypt.gensalt())
+# "$2b$12$Rn7mGk8X9Yq2TvW5pLaN3.a1b2c3d4..."
+```
+El sistema almacena solo el hash, nunca la contrasena original. Al verificar, re-calcula el hash y compara.
+
+2. Diccionarios Python. Los datos viajan entre componentes como diccionarios:
+```python
+user_data = {
+    "boleta": "2025350215",      # clave: "boleta", valor: "2025350215"
+    "nombre": "Omar Sosa",       # clave: "nombre", valor: "Omar Sosa"
+    "carrera": "ISC",            # clave: "carrera", valor: "ISC"
+}
+# Acceso instantaneo:
+user_data["boleta"]  # → "2025350215"  (O(1), sin importar cuantos campos haya)
+```
+
+3. Intercambio de datos via JSON. JSON es esencialmente una tabla hash serializada como texto que viaja entre frontend y backend:
+```json
+{"boleta": "2025350215", "nombre": "Omar Sosa", "carrera": "ISC"}
+```
+
+4. localStorage en el navegador. La sesion del usuario se almacena como un par clave-valor:
+```javascript
+localStorage.setItem("user", JSON.stringify(userData));  // Guardar
+const user = JSON.parse(localStorage.getItem("user"));   // Recuperar en O(1)
+```
+
+5. Estado de React (useState). Internamente React usa estructuras de hash para manejar el estado de los componentes:
+```jsx
+const [spaces, setSpaces] = useState({});
+// spaces puede ser: {"1": {status: "available"}, "2": {status: "occupied"}}
+// Acceder a spaces["1"] es O(1)
+```
+
+### Complejidad algoritmica
+- Buscar por clave: O(1) — tiempo constante, instantaneo.
+- Insertar un par clave-valor: O(1).
+- Eliminar por clave: O(1).
+- Buscar por valor (sin clave): O(n) — hay que recorrer todos los pares.
+
+O(1) significa que el tiempo NO crece cuando hay mas datos. O(n) significa que el tiempo crece linealmente (el doble de datos toma el doble de tiempo).
+
+## 12.2 GRAFOS PONDERADOS
+
+### Que es un grafo ponderado
+
+Un grafo es una estructura con nodos (puntos) conectados por aristas (lineas). Si las aristas tienen un valor numerico asociado (llamado peso), el grafo es ponderado. El peso puede representar distancia, tiempo, costo, etc.
+
+Analogia: Piensa en el sistema de metro de la Ciudad de Mexico. Cada estacion es un nodo. Cada tramo entre dos estaciones es una arista. Si a cada tramo le asignas la distancia en metros, tienes un grafo ponderado. Para encontrar la ruta mas corta de Pantitlan a Universidad, necesitas el algoritmo de Dijkstra.
+
+### Como se usa en el proyecto
+
+Los caminos peatonales del campus ESIME Culhuacan forman un grafo ponderado con aproximadamente 431 nodos y 523 aristas:
+
+```python
+import networkx as nx
+
+# Crear el grafo
+G = nx.Graph()
+
+# Cada interseccion del campus es un nodo (coordenadas GPS)
+# Cada segmento de camino es una arista con peso = distancia en metros
+G.add_edge(
+    (19.329, -99.111),            # Nodo A: coordenadas GPS
+    (19.330, -99.112),            # Nodo B: coordenadas GPS
+    weight=120.5                   # Distancia entre A y B: 120.5 metros
+)
+
+# Para encontrar la ruta mas corta:
+ruta = nx.shortest_path(G, source=nodo_origen, target=nodo_destino, weight='weight')
+# ruta = [(19.329, -99.111), (19.3295, -99.1115), (19.330, -99.112)]
+```
+
+El algoritmo de Dijkstra encuentra la ruta donde la suma de pesos (distancias) es la menor posible. Es como un GPS que calcula la ruta mas corta considerando la distancia real de cada calle.
+
+### Como funciona Dijkstra (explicacion simplificada)
+
+Imagina que estas en una ciudad con calles de diferentes longitudes y quieres llegar a un punto especifico por el camino mas corto:
+
+1. Empiezas en tu ubicacion. La distancia acumulada es 0.
+2. Miras todas las calles que salen de donde estas. Anotas la distancia a cada vecino.
+3. De todos los vecinos NO visitados, eliges el que tiene la menor distancia acumulada.
+4. Desde ese vecino, miras sus calles. Si descubres un camino mas corto a algun nodo, actualizas la distancia.
+5. Marcas el nodo actual como "visitado" (ya no lo reconsideras).
+6. Repites desde el paso 3 hasta llegar al destino.
+
+El resultado es necesariamente la ruta mas corta.
+
+### Complejidad algoritmica
+- Dijkstra con cola de prioridad: O((V + E) × log V), donde V = nodos y E = aristas.
+- Para nuestro grafo de 431 nodos y 523 aristas, esto significa unas pocos miles de operaciones: instantaneo para una computadora.
+
+## 12.3 TABLAS RELACIONALES (SQL)
+
+### Que es una tabla relacional
+
+Una tabla relacional organiza datos en filas y columnas, donde las tablas pueden estar conectadas entre si mediante claves foraneas. Es la base de todas las bases de datos SQL.
+
+Analogia: Una hoja de Excel donde cada fila es un registro (un alumno, una materia, un espacio de estacionamiento) y cada columna es un tipo de dato (nombre, boleta, carrera). Lo "relacional" es que puedes vincular hojas entre si. Por ejemplo, la hoja de alumnos tiene una columna "grupo" que apunta a una fila en la hoja de grupos.
+
+### Como se usa en el proyecto
+
+El proyecto tiene 15 tablas distribuidas en dos bases de datos. Ejemplo de relacion:
+
+```python
+# Un alumno pertenece a un grupo
+class Alumno(db.Model):
+    id_grupo = db.Column(db.Integer, db.ForeignKey('grupos.id'))
+
+# Para obtener las materias de un alumno:
+alumno = Alumno.query.filter_by(boleta="2025350215").first()
+inscripciones = Inscripcion.query.filter_by(alumno_id=alumno.id).all()
+for inscripcion in inscripciones:
+    grupo = MateriaGrupo.query.get(inscripcion.materia_grupo_id)
+    print(f"Materia: {grupo.materia.nombre}, Salon: {grupo.salon.nombre}")
+```
+
+Este codigo sigue las relaciones: Alumno → Inscripcion → MateriaGrupo → Materia/Salon. Cada flecha es una clave foranea que conecta dos tablas.
+
+## 12.4 ARREGLOS Y LISTAS
+
+### Que es un arreglo/lista
+
+Un arreglo (array en JavaScript, list en Python) es una coleccion ordenada de elementos accesibles por indice numerico. El primer elemento esta en el indice 0, el segundo en el indice 1, etc.
+
+Analogia: Una fila de casilleros numerados del 0 al 29. Cada casillero contiene un objeto. Si alguien te dice "abre el casillero 7", lo encuentras instantaneamente sin revisar los demas.
+
+### Donde se usan en el proyecto
+
+1. Coordenadas de ruta. La ruta calculada por Dijkstra es una lista de coordenadas GPS:
+```python
+ruta = [
+    [19.329500, -99.111400],   # Punto 0: inicio
+    [19.329600, -99.111300],   # Punto 1: primera interseccion
+    [19.329800, -99.111000],   # Punto 2: giro
+    [19.330100, -99.110800],   # Punto 3: destino
+]
+# Leaflet dibuja una linea conectando todos estos puntos en orden sobre el mapa
+```
+
+2. Lista de espacios de estacionamiento. Los cajones de una seccion se almacenan como arreglo:
+```javascript
+const spaces = [
+    {id: 1, space_number: 1, status: "available"},
+    {id: 2, space_number: 2, status: "occupied"},
+    {id: 3, space_number: 3, status: "reserved"},
+    // ... 30 espacios por seccion
+];
+// spaces.filter(s => s.status === "available") para obtener solo los disponibles
+```
+
+3. Resultados de busqueda. Cuando el usuario busca "Edificio 2", los resultados se devuelven como lista:
+```javascript
+const resultados = locations.filter(loc =>
+    loc.name.toLowerCase().includes("edificio 2")
+);
+// Puede retornar 0, 1 o multiples coincidencias
+```
+
+### Complejidad algoritmica
+- Acceder por indice: O(1).
+- Buscar un elemento (sin orden): O(n) — necesitas recorrer la lista.
+- Agregar al final: O(1).
+- Agregar o eliminar al inicio: O(n) — hay que mover todos los elementos.
+
+## 12.5 COLAS DE PRIORIDAD
+
+### Que es una cola de prioridad
+
+Una cola de prioridad es una estructura donde cada elemento tiene una prioridad asociada. El elemento con mayor (o menor) prioridad siempre sale primero, sin importar en que orden se inserto.
+
+Analogia: La sala de emergencias de un hospital. Los pacientes no se atienden por orden de llegada. Un paciente con un infarto (prioridad alta) se atiende antes que uno con dolor de cabeza (prioridad baja), incluso si el del dolor de cabeza llego primero.
+
+### Donde se usa en el proyecto
+
+1. Algoritmo de Dijkstra (internamente). NetworkX usa una cola de prioridad para seleccionar siempre el nodo con la menor distancia acumulada:
+```python
+# Conceptualmente (NetworkX lo implementa internamente):
+import heapq
+
+cola = []
+heapq.heappush(cola, (0, nodo_inicio))         # distancia 0 al inicio
+heapq.heappush(cola, (120.5, nodo_vecino_1))    # distancia 120.5m al vecino 1
+heapq.heappush(cola, (85.3, nodo_vecino_2))     # distancia 85.3m al vecino 2
+
+# heappop siempre extrae el de menor distancia
+siguiente = heapq.heappop(cola)  # → (85.3, nodo_vecino_2)
+# Dijkstra explora primero el camino mas corto posible
+```
+
+Sin una cola de prioridad, Dijkstra tendria que recorrer todos los nodos para encontrar el de menor distancia en cada paso, lo que seria mucho mas lento.
+
+2. Sistema de notificaciones. Las notificaciones tipo toast se manejan con prioridad:
+```javascript
+// Las notificaciones de error se muestran antes que las informativas
+showNotification("Reserva exitosa", "success");     // aparece despues
+showNotification("Sin conexion GPS", "error");       // aparece primero (mayor prioridad)
+```
+
+### Complejidad algoritmica
+- Insertar un elemento: O(log n).
+- Extraer el de mayor/menor prioridad: O(log n).
+- Consultar el de mayor/menor prioridad (sin extraer): O(1).
+
+
+# CAPITULO 13. API REST DEL PROYECTO
+
+Este capitulo explica que archivos del proyecto crean, definen y consumen la API REST. Una API REST es un "contrato" entre el frontend y el backend: define las URLs, los metodos HTTP y los formatos de datos que ambos lados deben respetar.
+
+## 13.1 DONDE SE CREA LA API (ENDPOINTS)
+
+Todos los endpoints se definen en un solo archivo: backend/app.py
+
+Cada endpoint es una combinacion de URL + metodo HTTP + funcion Python. Flask los registra usando decoradores @app.route():
+
+```python
+# Este decorador le dice a Flask:
+# "Cuando alguien haga una peticion POST a la URL /auth/login,
+#  ejecuta la funcion login()"
+@app.route("/auth/login", methods=["POST"])
+@limiter.limit("5 per minute")
+def login():
+    data = request.get_json()                        # Leer el JSON del cuerpo
+    user, error = auth_service.login(data)           # Delegar al servicio
+    if error:
+        return jsonify({"error": error}), 401        # Retornar error HTTP 401
+    return jsonify(user), 200                        # Retornar usuario HTTP 200
+```
+
+El endpoint es SOLO un intermediario. No contiene logica de negocio. Su trabajo es:
+1. Recibir la peticion HTTP.
+2. Extraer los datos del cuerpo (JSON, parametros de URL, etc.).
+3. Llamar al servicio correspondiente.
+4. Empaquetar el resultado en una respuesta HTTP con el codigo de estado correcto.
+
+app.py contiene aproximadamente 25 endpoints organizados por dominio:
+- Autenticacion (5 endpoints): login, register, set-password, check-email, complete-profile.
+- Mapa y navegacion (3 endpoints): buildings, route, graph-info.
+- Estacionamiento (3 endpoints): sections, spaces, update-status.
+- Horarios (2 endpoints): schedule completo, schedule de hoy.
+- Usuario (2 endpoints): obtener datos, actualizar perfil.
+- Lugares guardados (3 endpoints): listar, crear, eliminar.
+
+## 13.2 DONDE SE CONSUME LA API (PETICIONES HTTP)
+
+Las peticiones HTTP se centralizan en un solo archivo: frontend/src/services/api.js
+
+Este archivo contiene funciones que encapsulan cada llamada fetch() al backend. Ningun otro archivo del frontend hace peticiones HTTP directamente; todos usan las funciones de api.js.
+
+```javascript
+// Funcion que consume el endpoint POST /auth/login
+export async function login(boleta, password) {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",                           // Metodo HTTP
+        headers: { "Content-Type": "application/json" },  // Formato del cuerpo
+        body: JSON.stringify({ boleta, password }),        // Datos en JSON
+    });
+    return handleResponse(res);                   // Manejar la respuesta
+}
+```
+
+Centralizar las peticiones en api.js tiene ventajas importantes:
+- Si la URL del backend cambia, solo se modifica API_BASE en un lugar.
+- Si se necesita agregar autenticacion (JWT), se agrega el header en headers() una sola vez.
+- Los errores de red se manejan en handleResponse() de forma uniforme.
+- Los componentes React no necesitan saber detalles de HTTP; solo llaman funciones.
+
+## 13.3 DONDE SE USAN LAS FUNCIONES DE LA API
+
+Los componentes React importan funciones de api.js y las llaman cuando el usuario interactua:
+
+Login.jsx usa: login(), register(), setPassword(), checkEmail(), completeProfile()
+Dashboard.jsx usa: getSchedule(), getProfile()
+ParkingPage.jsx usa: getParkingSections(), getParkingSpaces(), updateSpaceStatus()
+MapComponent.jsx usa: getWalkingRoute(), getSavedPlaces(), savePlace(), deletePlace()
+
+Ejemplo del flujo completo:
+
+```
+COMPONENTE REACT (Login.jsx, Dashboard.jsx, etc.)
+       |
+       | llama funcion importada de api.js
+       v
+api.js  →  fetch("http://localhost:5001/auth/login", POST)
+       |
+       | peticion HTTP viaja por la red
+       v
+app.py  →  @app.route('/auth/login', methods=['POST'])
+       |
+       | ejecuta logica de negocio
+       v
+SERVICIOS (auth_service.py, schedule_service.py, etc.)
+       |
+       | consulta o modifica datos
+       v
+REPOSITORIOS (sqlite_repository.py)
+       |
+       | ejecuta consulta SQL
+       v
+BASE DE DATOS (school.db, map.db)
+```
+
+El frontend NUNCA accede directamente a la base de datos. Siempre pasa por la API REST, que actua como una barrera de seguridad entre el mundo exterior y los datos internos.
+
+
+# APENDICE A. MIGRACION Y LIMPIEZA POST-REFACTORIZACION
+
+Fecha: 10 de marzo de 2026
+
+Este apendice documenta los cambios realizados durante la migracion posterior a la refactorizacion del sistema. Estos cambios se hicieron para limpiar datos obsoletos, mejorar la seguridad y corregir errores en los horarios.
+
+## A.1 LIMPIEZA DE USUARIOS ANTIGUOS
+
+Se eliminaron todos los usuarios creados antes de la refactorizacion, excepto dos cuentas de prueba que se conservaron:
+- Omar Sosa (boleta: 2025350215)
+- Adrian Frias (boleta: 2024351279)
+
+La eliminacion se realizo en el orden correcto para respetar las claves foraneas y evitar registros huerfanos:
+1. Primero se eliminaron las reservas de estacionamiento.
+2. Despues las ocupaciones de estacionamiento.
+3. Luego las inscripciones.
+4. Finalmente los registros de alumnos.
+
+Este orden es importante porque si se borrara un alumno antes de borrar sus reservas, la base de datos tendria reservas apuntando a un alumno que ya no existe (registros huerfanos), lo que podria causar errores.
+
+## A.2 IMPLEMENTACION DE BCRYPT
+
+Se migro el sistema de hashing de contrasenas de PBKDF2-SHA256 (via werkzeug) a bcrypt:
+
+Cambios en codigo:
+- auth_service.py: Se crearon los metodos _hash_password(), _verify_password() y _needs_rehash().
+- requirements.txt: Se agrego la dependencia bcrypt.
+
+Se establecio la contrasena "nueva123" para ambos usuarios conservados, hasheada con bcrypt.
+
+Se implemento migracion transparente para hashes legacy (ver seccion 3.8).
+
+## A.3 LIMPIEZA DE BASES DE DATOS ANTIGUAS
+
+Se eliminaron archivos de bases de datos que ya no estaban referenciados en config.py:
+- backend/campus.db (base de datos unica original, reemplazada por map.db + school.db)
+
+Solo se conservaron las bases de datos activas:
+- instance/map.db
+- instance/school.db
+
+## A.4 CORRECCION DE HORARIOS
+
+Se corrigio el horario de la materia "Estructura de Datos" para el grupo 3CV35:
+- Martes: 10:30-12:00 (corregido de un horario incorrecto anterior)
+- Viernes: 10:30-12:00 (corregido de un horario incorrecto anterior)
 
 
 # NOTA FINAL
